@@ -1,6 +1,7 @@
 package edu.ethz.asl.user04.shared.logging;
 
 import java.io.IOException;
+import java.net.InetAddress;
 import java.util.logging.ConsoleHandler;
 import java.util.logging.FileHandler;
 import java.util.logging.Handler;
@@ -12,7 +13,8 @@ public class MessagingSystemLogger {
 	static private FileHandler fileHandler = null;
 	static private ConsoleHandler consoleHandler = null;
 	static private final Long timeEpoch = System.currentTimeMillis();
-	static private final String FILE_PATH = "/tmp/mesgsys-logger_"+(int)(Math.random()*100000)+"_" + timeEpoch + ".log";
+	static public final int middlewareID = (int)(Math.random()*100000);
+	static public final String FILE_PATH = "/tmp/mesgsys-logger_"+middlewareID+"_" + timeEpoch + ".log";
 
 	/*@Deprecated
 	static public void setup() throws IOException {

@@ -277,11 +277,12 @@ public class MessageAPI2014 implements ClientAPIInterface {
 								outTimes.clWaitsinMWQ-cfg.experimentStartTime,   //used for q size calc
 								outTimes.clOutofMWQ-cfg.experimentStartTime  //used for q size calc
 						)
-						+String.format(", %d, %d, %d, %d",
+						+String.format(", %d, %d, %d, %d, %d",
 								outTimes.qSizeDB,
 								outTimes.qSizeMW,
 								outTimes.mwNoQRound,
-								outTimes.mwNetworkTime	
+								outTimes.mwNetworkTime,
+								outTimes.mwID
 						)
 				);
 
@@ -407,11 +408,12 @@ public boolean createClient(CreateClientRequest createClientRequest) {
 								outTimes.mwOutofDBQ-cfg.experimentStartTime, //used for q size calc
 								outTimes.clWaitsinMWQ-cfg.experimentStartTime,   //used for q size calc
 								outTimes.clOutofMWQ-cfg.experimentStartTime  //used for q size calc
-						)+String.format(", %d, %d, %d, %d",
+						)+String.format(", %d, %d, %d, %d, %d",
 								outTimes.qSizeDB,
 								outTimes.qSizeMW,
 								outTimes.mwNoQRound,
-								outTimes.mwNetworkTime		
+								outTimes.mwNetworkTime,
+								outTimes.mwID
 						)
 				);
 
@@ -508,11 +510,12 @@ public boolean createClient(CreateClientRequest createClientRequest) {
 								outTimes.mwOutofDBQ-cfg.experimentStartTime, //used for q size calc
 								outTimes.clWaitsinMWQ-cfg.experimentStartTime,   //used for q size calc
 								outTimes.clOutofMWQ-cfg.experimentStartTime  //used for q size calc
-						)+String.format(", %d, %d, %d, %d",
+						)+String.format(", %d, %d, %d, %d, %d",
 								outTimes.qSizeDB,
 								outTimes.qSizeMW,
 								outTimes.mwNoQRound,
-								outTimes.mwNetworkTime
+								outTimes.mwNetworkTime,
+								outTimes.mwID
 						)
 				);
 		
@@ -607,11 +610,12 @@ public boolean createClient(CreateClientRequest createClientRequest) {
 								outTimes.mwOutofDBQ-cfg.experimentStartTime, //used for q size calc
 								outTimes.clWaitsinMWQ-cfg.experimentStartTime,   //used for q size calc
 								outTimes.clOutofMWQ-cfg.experimentStartTime  //used for q size calc
-						)+String.format(", %d, %d, %d, %d",
+						)+String.format(", %d, %d, %d, %d, %d",
 								outTimes.qSizeDB,
 								outTimes.qSizeMW,
 								outTimes.mwNoQRound,
-								outTimes.mwNetworkTime		
+								outTimes.mwNetworkTime,
+								outTimes.mwID
 						)
 				);
 		
@@ -704,11 +708,12 @@ public boolean createClient(CreateClientRequest createClientRequest) {
 								outTimes.mwOutofDBQ-cfg.experimentStartTime, //used for q size calc
 								outTimes.clWaitsinMWQ-cfg.experimentStartTime,   //used for q size calc
 								outTimes.clOutofMWQ-cfg.experimentStartTime  //used for q size calc
-						)+String.format(", %d, %d, %d, %d",
+						)+String.format(", %d, %d, %d, %d, %d",
 								outTimes.qSizeDB,
 								outTimes.qSizeMW,
 								outTimes.mwNoQRound,
-								outTimes.mwNetworkTime		
+								outTimes.mwNetworkTime,
+								outTimes.mwID
 						)
 				);
 		
@@ -814,11 +819,12 @@ public boolean createClient(CreateClientRequest createClientRequest) {
 								outTimes.mwOutofDBQ-cfg.experimentStartTime, //used for q size calc
 								outTimes.clWaitsinMWQ-cfg.experimentStartTime,   //used for q size calc
 								outTimes.clOutofMWQ-cfg.experimentStartTime  //used for q size calc
-						)+String.format(", %d, %d, %d, %d",
+						)+String.format(", %d, %d, %d, %d, %d",
 								outTimes.qSizeDB,
 								outTimes.qSizeMW,
 								outTimes.mwNoQRound,
-								outTimes.mwNetworkTime		
+								outTimes.mwNetworkTime,
+								outTimes.mwID
 						)
 				);
 		
@@ -924,11 +930,12 @@ public boolean createClient(CreateClientRequest createClientRequest) {
 								outTimes.mwOutofDBQ-cfg.experimentStartTime, //used for q size calc
 								outTimes.clWaitsinMWQ-cfg.experimentStartTime,   //used for q size calc
 								outTimes.clOutofMWQ-cfg.experimentStartTime  //used for q size calc
-						)+String.format(", %d, %d, %d, %d",
-								outTimes.qSizeDB, //Size of the DB queue before message enters it
+						)+String.format(", %d, %d, %d, %d, %d",
+								outTimes.qSizeDB,
 								outTimes.qSizeMW,
 								outTimes.mwNoQRound,
-								outTimes.mwNetworkTime	
+								outTimes.mwNetworkTime,
+								outTimes.mwID
 						)
 				);
 		

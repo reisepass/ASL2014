@@ -85,8 +85,10 @@ public class MessageHandler implements Runnable {
 
 	@Override
 	public void run() {
+		
 		StatTrack timeStamps = new StatTrack();
 		timeStamps.mwStarts=System.currentTimeMillis();
+		timeStamps.mwID=MessagingSystemLogger.middlewareID;
 		mwQueueCount.getAndDecrement();
 		timeStamps.qSizeMW=startingMWQ;
 		try {
