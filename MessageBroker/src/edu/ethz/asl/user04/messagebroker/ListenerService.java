@@ -42,7 +42,10 @@ public class ListenerService implements Runnable {
                 // Assign a thread to handle client network communication
                // System.out.println("ListenerService: client connected...");
                 
-                MessageHandler handler = new MessageHandler(client,connectionPool,dbQueueCount,mwQueueCount,mwQueueCount.getAndIncrement(),true);
+                int mwQStart=-1;
+                if(mwQueueCount!=null)
+                	mwQStart=mwQueueCount.getAndIncrement();
+                MessageHandler handler = new MessageHandler(client,connectionPool,dbQueueCount,mwQueueCount,mwQStart,true);
             //    System.out.println(connectionPool.describeConnectionPool());
                 
                 pool.execute(handler);

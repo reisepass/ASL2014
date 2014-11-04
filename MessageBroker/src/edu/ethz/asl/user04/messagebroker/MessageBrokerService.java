@@ -49,8 +49,21 @@ public class MessageBrokerService {
 					server_prop.getProperty("db_password"),
 					Integer.parseInt(server_prop.getProperty("db_connection_limit")));
 			System.out.println("### Starting mw1");
-			dbQueueCount = new AtomicInteger(0);
-			mwQueueCount = new AtomicInteger(0);
+			dbQueueCount = null;
+			mwQueueCount = null;
+			try{
+				if(server_prop.getProperty("mw_useDBQCounter")=="true"){
+					dbQueueCount = new AtomicInteger(0);
+				}
+				if(server_prop.getProperty("mw_useMWQCounter")=="true"){
+					mwQueueCount = new AtomicInteger(0);
+				}
+				
+			}
+			finally{
+				
+			}
+			
 			listener = new ListenerService(Integer.parseInt(server_prop
 					.getProperty("mw_server_port",
 							(new Integer(SERVER_PORT)).toString())), pool,

@@ -89,7 +89,8 @@ public class MessageHandler implements Runnable {
 		StatTrack timeStamps = new StatTrack();
 		timeStamps.mwStarts=System.currentTimeMillis();
 		timeStamps.mwID=MessagingSystemLogger.middlewareID;
-		mwQueueCount.getAndDecrement();
+		if(mwQueueCount!=null)
+			mwQueueCount.getAndDecrement();
 		timeStamps.qSizeMW=startingMWQ;
 		try {
 			if(debugOn)
@@ -115,7 +116,13 @@ public class MessageHandler implements Runnable {
 				
 				int timesTried = 1;
 				timeStamps.mwWaitsinDBQ=System.currentTimeMillis();
-				startingDBQ = dbQueueCount.getAndIncrement();
+				if(dbQueueCount!=null){
+					startingDBQ = dbQueueCount.getAndIncrement();
+				}
+				else{
+					startingDBQ=-1;
+				}
+				
 				timeStamps.qSizeDB=startingDBQ;
 				LOGGER.log(
 						Level.INFO,
@@ -143,7 +150,8 @@ public class MessageHandler implements Runnable {
 						throw new EmptyStackException();
 				}
 				timeStamps.mwOutofDBQ=System.currentTimeMillis();
-				dbQueueCount.decrementAndGet();
+				if(dbQueueCount!=null)
+					dbQueueCount.decrementAndGet();
 				
 				SQLUtil_v2014 sqlutil = new SQLUtil_v2014(conn, resultChunkSize);
 
