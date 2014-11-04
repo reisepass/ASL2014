@@ -1,0 +1,60 @@
+package edu.ethz.asl.user04.shared.entity;
+
+import java.io.Serializable;
+import java.util.UUID;
+
+public class RequestResponse implements Serializable {
+
+	/**
+	 * 
+	 */
+	private static final long serialVersionUID = -2298962223714761011L;
+	public boolean success;
+	private String extraInfo;
+	private Object payload;
+	public String getExtraInfo() {
+		return extraInfo;
+	}
+
+	public void setExtraInfo(String extraInfo) {
+		this.extraInfo = extraInfo;
+	}
+
+	public Object getPayload() {
+		return payload;
+	}
+
+	public void setPayload(Object payload) {
+		this.payload = payload;
+	}
+
+	public boolean isSuccess() {
+		return success;
+	}
+
+	public UUID getRequestUUID() {
+		return requestUUID;
+	}
+
+	private UUID requestUUID;
+	
+
+	public RequestResponse(boolean success) {
+		super();
+		this.success = success;
+		extraInfo = "NoExtraInfo";
+	}
+
+	public RequestResponse(boolean success, String extraInfo) {
+		super();
+		this.success = success;
+		this.extraInfo = extraInfo;
+	}
+	
+	public RequestResponse(boolean success, UUID requestUUID) {
+		super();
+		this.success = success;
+		this.requestUUID = requestUUID;
+	}
+
+}

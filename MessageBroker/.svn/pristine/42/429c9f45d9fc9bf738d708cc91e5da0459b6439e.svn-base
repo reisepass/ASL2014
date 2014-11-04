@@ -1,0 +1,11 @@
+# Database-side configuration
+db_url=localhost
+db_name=ASL_1
+db_port=5009
+db_username=tribhu
+db_password=gnus1mas
+db_connection_limit=25
+
+# Sever-side parameters
+mw_message_handlers_pool_size=15
+mw_server_port=5009

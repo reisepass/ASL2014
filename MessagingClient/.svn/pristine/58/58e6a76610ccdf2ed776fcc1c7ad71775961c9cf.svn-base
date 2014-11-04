@@ -1,0 +1,57 @@
+package edu.ethz.asl.user04.trace;
+
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
+import java.io.IOException;
+import java.util.Properties;
+import java.util.logging.Level;
+import java.util.logging.Logger;
+
+import edu.ethz.asl.user04.clientAPI.MessageAPI;
+import edu.ethz.asl.user04.shared.logging.MessagingSystemLogger;
+import edu.ethz.user04.shared.requests.queuerequests.CreateQueueRequest;
+
+public class CreateQueueTrace {
+	
+	public final static Logger LOGGER = MessagingSystemLogger
+			.getLoggerForClass(CreateQueueTrace.class.getName());
+
+	public static void main(String[] args) throws FileNotFoundException, IOException {
+		
+		Properties client_prop = new Properties();
+		client_prop.load(new FileInputStream("properties/client.properties"));
+		
+		int runTime = 15; // In minutes
+		
+		int clientID = 666;
+		String brokerServiceURL = client_prop.getProperty("mw_url");
+		int brokerServicePort = Integer.parseInt(client_prop.getProperty("mw_port"));
+		
+		Integer i = 0;
+		CreateQueueRequest createQueueRequest;
+		
+		MessageAPI mapi = new MessageAPI(clientID, brokerServiceURL, brokerServicePort);
+		
+		Long startTime = System.currentTimeMillis();
+		Long stopTime = runTime*60*1000 + startTime;
+		
+		while (System.currentTimeMillis() < stopTime) {
+			createQueueRequest = new CreateQueueRequest(i, "Queue " + i);
+			LOGGER.log(
+					Level.INFO,
+					String.format(
+							"[METRIC] type=request request_type=CreateQueueRequest request_id=%s tier=client tag=sending_request_from_client_to_api",
+							createQueueRequest.getRequestUUID()));
+			boolean flag = mapi.createQueue(createQueueRequest);
+			LOGGER.log(
+					Level.INFO,
+					String.format(
+							"[METRIC] type=response request_type=CreateQueueRequest request_id=%s tier=client result=%s tag=received_response_at_client_from_api",
+							createQueueRequest.getRequestUUID(), (flag ? "PASS"
+									: "FAIL")));
+			i++;
+		}
+
+	}
+
+}

@@ -1,0 +1,57 @@
+package edu.ethz.asl.user04.clientAPI;
+
+import java.util.List;
+
+import edu.ethz.asl.user04.shared.entity.Message;
+import edu.ethz.user04.shared.requests.messagerequests.DeleteMessageRequest;
+import edu.ethz.user04.shared.requests.messagerequests.ReadMessageRequest;
+import edu.ethz.user04.shared.requests.messagerequests.WriteMessageRequest;
+import edu.ethz.user04.shared.requests.queuerequests.CreateQueueRequest;
+import edu.ethz.user04.shared.requests.queuerequests.DeleteQueueRequest;
+import edu.ethz.user04.shared.requests.queuerequests.ReadQueueRequest;
+
+public class ClientAPI implements ClientAPIInterface {
+
+	@Override
+	public void setCliendID(int clientId) {
+		// TODO Auto-generated method stub
+
+	}
+
+	@Override
+	public boolean sendMessage(WriteMessageRequest writeMessageRequest) {
+		// TODO Auto-generated method stub
+		return false;
+	}
+
+	@Override
+	public List<Message> readMessage(ReadMessageRequest readMessageRequest) {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+	@Override
+	public boolean deleteMessage(DeleteMessageRequest deleteMessageRequest) {
+		// TODO Auto-generated method stub
+		return false;
+	}
+
+	@Override
+	public boolean createQueue(CreateQueueRequest createQueueRequest) {
+		// TODO Auto-generated method stub
+		return false;
+	}
+
+	@Override
+	public List<Integer> readQueue(ReadQueueRequest readQueueRequest) {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+	@Override
+	public boolean deleteQueue(DeleteQueueRequest deleteQueueRequest) {
+		// TODO Auto-generated method stub
+		return false;
+	}
+
+}

@@ -1,0 +1,9 @@
+package edu.ethz.asl.user04.client;
+
+import edu.ethz.asl.user04.messagebroker.MessageBrokerService;
+
+public class JustStartServer {
+	public static void main(String [] args){
+		MessageBrokerService startServer = new MessageBrokerService();
+	}
+}

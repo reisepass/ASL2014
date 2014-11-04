@@ -1,0 +1,128 @@
+package edu.ethz.asl.user04.shared.entity;
+
+import java.io.Serializable;
+import java.sql.Timestamp;
+import java.util.ArrayList;
+import java.util.Date;
+import java.util.UUID;
+
+import edu.ethz.asl.user04.shared.enums.MessagePriority;
+
+/**
+ * Represents a Message with message text, receiver and sender ID, etc..
+ *
+ */
+public class Message implements Serializable {
+	/**
+	 * 
+	 */
+	private static final long serialVersionUID = 1L;
+	// Auto-generated
+	long messageId;
+	Timestamp timestamp;
+	// Mandatory
+	public int senderId;
+	ArrayList<Integer> queueIdList;
+	String payload;
+	// Optional
+	int receiverId, context;
+	MessagePriority priority;
+	
+	/**
+	 * Basic constructor. ReceiverID defaults to 0 (Broadcast message), context is 0, priority is lowest
+	 * @param senderId ID of the Publishing client
+	 * @param queueId Queue ID
+	 * @param payload Message text
+	 */
+	public Message(int senderId, int queueId, String payload) {
+		queueIdList = new ArrayList<Integer>();
+		
+		this.senderId = senderId;
+		this.queueIdList.add(queueId);
+		this.payload = payload;
+		
+		// Fill-up auto-generated parameters for this message
+		// 1. Timestamp
+		Date date  = new Date();
+		this.timestamp = new Timestamp(date.getTime());
+		// 2. Message ID
+		// FIXME Let database generate this ID
+		messageId = UUID.randomUUID().getMostSignificantBits();
+		
+		// Default optional parameters
+		this.receiverId = 0; // 0 is a broadcast message. TODO Read from config
+		this.context = 0;
+		this.priority = MessagePriority.ONE;
+		
+	}
+	
+	public String getPayLoad(){
+		return this.payload;
+	}
+	
+	public static long getSerialversionuid() {
+		return serialVersionUID;
+	}
+
+	public long getMessageId() {
+		return messageId;
+	}
+
+	public Timestamp getTimestamp() {
+		return timestamp;
+	}
+
+	public int getSenderId() {
+		return senderId;
+	}
+
+	public ArrayList<Integer> getQueueIdList() {
+		return queueIdList;
+	}
+
+	public String getPayload() {
+		return payload;
+	}
+
+	public int getReceiverId() {
+		return receiverId;
+	}
+
+	public int getContext() {
+		return context;
+	}
+
+	public MessagePriority getPriority() {
+		return priority;
+	}
+
+	/**
+	 * 
+	 * @param senderId
+	 * @param queueId
+	 * @param payload
+	 * @param receiverId
+	 * @param context
+	 * @param priority
+	 */
+	Message(int senderId, int queueId, String payload, int receiverId, int context, MessagePriority priority) {
+		this(senderId, queueId, payload);
+		this.receiverId = receiverId;
+		this.context = context;
+		this.priority = priority;
+	}
+	
+	public String toString() {
+		StringBuilder sb = new StringBuilder();
+		
+		sb.append("{");
+		sb.append( String.format("messageID: %d, ", messageId) );
+		sb.append( String.format("timestamp: %s, ", timestamp) );
+		sb.append( String.format("senderId: %d, ", senderId) );
+		sb.append( String.format("queueIdList: %s, ", queueIdList) );
+		sb.append( String.format("payload: %s, ", payload) );
+		sb.append("}");
+		
+		return sb.toString();
+	}
+}

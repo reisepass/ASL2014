@@ -1,0 +1,147 @@
+package edu.ethz.asl.user04.OTwantsProcessesSoHereYouGoOOOO;
+
+import java.io.FileInputStream;
+import java.io.IOException;
+import java.io.Serializable;
+import java.net.UnknownHostException;
+import java.util.ArrayList;
+import java.util.Properties;
+import java.util.logging.Level;
+import java.util.logging.Logger;
+
+import edu.ethz.asl.user04.clientAPI.MessageAPI;
+import edu.ethz.asl.user04.shared.entity.Message;
+import edu.ethz.asl.user04.shared.logging.MessagingSystemLogger;
+import edu.ethz.asl.user04.trace.sendMessageExperiment;
+import edu.ethz.user04.shared.requests.queuerequests.ReadPrivateMessageRequest;
+
+public class ProcReadMessage implements Serializable {
+	public final static Logger LOGGER = MessagingSystemLogger
+			.getLoggerForClass(ProcReadMessage.class.getName());
+	/**
+	 * 
+	 */
+
+	int clientID;
+
+	MessageAPI capi;
+	int mesLength;
+	// int queueID;
+	long experimentDur;
+	Properties cProp;
+	long expStartTime;
+	int numberQueues;
+	boolean sortByTime = true;
+	boolean removeAfterReading;
+
+	private void init() {
+
+		expStartTime = System.currentTimeMillis();
+		numberQueues = Integer.parseInt(cProp.getProperty("num_queues"));
+
+	}
+
+	public ProcReadMessage(int clientID, MessageAPI capi, long experimentDur,
+			Properties cProp, boolean removeAfterReading) {
+		super();
+		this.clientID = clientID;
+		this.capi = capi;
+		this.experimentDur = experimentDur;
+		this.cProp = cProp;
+
+		this.removeAfterReading = removeAfterReading;
+		init();
+	}
+
+	public void run() {
+		
+		int queueCounter = 0;
+		ReadPrivateMessageRequest rmpr;
+
+		expStartTime = System.currentTimeMillis();
+		long expEndTime = expStartTime + experimentDur * 60 * 1000;
+
+		LOGGER.info("[DEBUG] Starting Client " + clientID);
+
+		while (System.currentTimeMillis() < expEndTime) {
+
+			int readFromQueue = (queueCounter++ % numberQueues) + 1;
+
+			rmpr = new ReadPrivateMessageRequest(clientID, readFromQueue,
+					removeAfterReading, sortByTime);
+
+			LOGGER.log(
+					Level.INFO,
+					String.format(
+							"[METRIC] type=request request_type=ReadPrivateMessageRequest request_id=%s tier=client tag=sending_request_from_client_to_api client_id=%d",
+							rmpr.getRequestUUID(), clientID));
+
+			Message result = capi.readOnePrivateMessage(rmpr);
+
+			if (result != null)
+				LOGGER.log(
+						Level.INFO,
+						String.format(
+								"[METRIC] type=response request_type=ReadPrivateMessageRequest request_id=%s tier=client result=PASS messageBack=%s tag=received_response_at_client_from_api client_id=%d",
+								rmpr.getRequestUUID(), result.getPayload(),
+								clientID));
+			else {
+				LOGGER.log(
+						Level.INFO,
+						String.format(
+								"[METRIC] type=response request_type=ReadPrivateMessageRequest request_id=%s tier=client result=FAIL messageBack=NothingFoundORFail tag=received_response_at_client_from_api client_id=%d",
+								rmpr.getRequestUUID(), clientID));
+
+			}
+
+		}
+
+		LOGGER.info("[DEBUG] Terminating Client " + clientID);
+
+	}
+
+	public static void main(String[] args) throws UnknownHostException,
+			IOException {
+		if (args == null || args.length < 2)
+			System.exit(1);
+		else {
+			int ci = -1;
+			long exp = -1;
+			int q = -1;
+			int ml = -1;
+			Boolean rmAfter = null;
+			for (int i = 0; i < args.length - 1; i++) {
+				if (args[i].equals("--clientID"))
+					ci = Integer.parseInt(args[i + 1]);
+				if (args[i].equals("--experlength"))
+					exp = Long.parseLong(args[i + 1]);
+				if (args[i].equals("--QueueID")) {
+					q = Integer.parseInt(args[i + 1]);
+				}
+				if (args[i].equals("--meslength"))
+					ml = Integer.parseInt(args[i + 1]);
+				if (args[i].equals("--removeafter"))
+					rmAfter = Boolean.parseBoolean(args[i + 1]);
+
+			}
+			if (ci == -1 || exp == -1 || rmAfter == null) {
+				System.err.println("&^33 Args Missing");
+				System.exit(1);
+			}
+
+			Properties client_prop = new Properties();
+			client_prop
+					.load(new FileInputStream("properties/client.properties"));
+			String brokerServiceURL = client_prop.getProperty("mw_url");
+			int brokerServicePort = Integer.parseInt(client_prop
+					.getProperty("mw_port"));
+
+			MessageAPI mapi = new MessageAPI(ci, brokerServiceURL,
+					brokerServicePort);
+
+			ProcReadMessage prm = new ProcReadMessage(ci, mapi, exp,
+					client_prop, rmAfter);
+			prm.run();
+		}
+	}
+}

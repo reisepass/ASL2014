@@ -1,0 +1,32 @@
+package junit.tests;
+
+import java.io.IOException;
+import java.net.UnknownHostException;
+import java.util.Random;
+
+import org.junit.Test;
+
+import edu.ethz.asl.user04.client.ClientReadOnePrivateMessage;
+import edu.ethz.asl.user04.client.ClientSendOnePrivate;
+import edu.ethz.asl.user04.clientAPI.ClientAPI;
+import edu.ethz.asl.user04.shared.entity.Message;
+import edu.ethz.user04.shared.requests.queuerequests.ReadQueueRequest;
+import junit.framework.TestCase;
+
+
+
+public class ReadandWriteOnePrivateMessage extends TestCase {
+
+	@Test
+	public void test() {
+		Random rand = new Random();
+		int A = rand.nextInt();
+		int B = rand.nextInt();
+		String secret=("THIS IS A PRIVATE MESAGE"+rand.nextInt());
+		ClientSendOnePrivate sending = new ClientSendOnePrivate( A, B, 5, secret);
+		ClientReadOnePrivateMessage read = new ClientReadOnePrivateMessage(B, A, 5, secret );
+		assertTrue(sending.DOIT());
+		assertTrue(read.takeIt());// this makes the actual comparison 
+				
+	}
+}

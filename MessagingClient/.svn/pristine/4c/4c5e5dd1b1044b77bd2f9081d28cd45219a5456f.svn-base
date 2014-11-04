@@ -1,0 +1,92 @@
+package edu.ethz.asl.user04.trace;
+
+import java.util.logging.Level;
+import java.util.logging.Logger;
+
+import edu.ethz.asl.user04.clientAPI.MessageAPI;
+import edu.ethz.asl.user04.messagebroker.MessageBrokerService;
+import edu.ethz.asl.user04.shared.entity.Message;
+import edu.ethz.asl.user04.shared.logging.MessagingSystemLogger;
+import edu.ethz.user04.shared.requests.messagerequests.WriteMessageRequest;
+import edu.ethz.user04.shared.requests.queuerequests.CreateQueueRequest;
+
+public class sendMessageExperiment {
+	
+	public final static Logger LOGGER = MessagingSystemLogger.getLoggerForClass(sendMessageExperiment.class.getName());
+	public static void createQueues(MessageAPI mapi){
+		
+		for(int i =0; i<50; i++){
+			CreateQueueRequest createQueue = new CreateQueueRequest(i, "queue "+i);
+			mapi.createQueue(createQueue);
+		}
+		
+		
+	}
+	
+	public static int sendMessages(MessageAPI mapi){
+		
+		long startTime = System.currentTimeMillis();
+		int messagesSent = 0;
+		int messagesInsertedToDb=0;
+		while(true){
+			int whichQueue = messagesSent%5;
+			Message msg = new Message(1, whichQueue, "message size is 20!!");
+			WriteMessageRequest writeRequest = new WriteMessageRequest(msg);
+			messagesSent++;
+		
+
+			 LOGGER.log(
+	                    Level.INFO,
+	                    String.format(
+	                            "[METRIC] type=request request_type=WriteMessageRequest request_id=%s tier=client tag=sending_request_from_client_to_api",
+	                            writeRequest.getRequestUUID()));
+			
+			boolean result = mapi.sendMessage(writeRequest);
+			if(result){
+				messagesInsertedToDb++;
+			}
+			
+			LOGGER.log(
+                    Level.INFO,
+                    String.format(
+                            "[METRIC] type=response request_type=WriteMessageRequest request_id=%s tier=client result=%s tag=received_response_at_client_from_api",
+                           writeRequest.getRequestUUID(), (result ? "PASS"
+                                    : "FAIL")));
+			
+			long currentTime = System.currentTimeMillis();
+			long timeDifference = currentTime - startTime;
+			
+			
+			if(timeDifference>=1000 * 60 * 15) // 15 minutes
+				break;
+		}
+		return messagesSent;
+		
+	}
+	
+	
+	public static void startTest(){
+		
+		MessageBrokerService service = new MessageBrokerService();
+		MessageAPI mapi = null;
+		try{
+			mapi = new MessageAPI();
+		}
+		catch(Exception e){
+			
+		}
+		mapi.setCliendID(1);
+		
+		createQueues(mapi);
+		
+		int messagesSent = sendMessages(mapi);
+		System.out.println("sent: "+messagesSent);
+		
+		
+	}
+	
+	public static void main(String[]args){
+		startTest();
+	}
+
+}

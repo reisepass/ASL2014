@@ -1,0 +1,11 @@
+package edu.ethz.asl.user04.OTwantsProcessesSoHereYouGoOOOO;
+
+import edu.ethz.asl.user04.messagebroker.MessageBrokerService;
+
+public class runServer {
+	
+	public static void main(String[]ags){
+		MessageBrokerService mbs = new MessageBrokerService();
+	}
+
+}

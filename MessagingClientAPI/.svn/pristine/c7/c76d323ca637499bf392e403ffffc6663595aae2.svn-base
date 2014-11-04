@@ -1,0 +1,540 @@
+package edu.ethz.asl.user04.clientAPI;
+
+import java.io.IOException;
+import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
+import java.net.Socket;
+import java.net.UnknownHostException;
+import java.util.ArrayList;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.logging.Logger;
+import java.util.logging.Level;
+
+import edu.ethz.asl.user04.shared.entity.Message;
+import edu.ethz.asl.user04.shared.entity.RequestResponse;
+import edu.ethz.asl.user04.shared.logging.MessagingSystemLogger;
+import edu.ethz.user04.shared.requests.messagerequests.DeleteMessageRequest;
+import edu.ethz.user04.shared.requests.messagerequests.WriteMessageRequest;
+import edu.ethz.user04.shared.requests.queuerequests.CloseConnection;
+import edu.ethz.user04.shared.requests.queuerequests.CreateQueueRequest;
+import edu.ethz.user04.shared.requests.queuerequests.DeleteQueueRequest;
+import edu.ethz.user04.shared.requests.queuerequests.QueryForQueuesWithMessagesForMe;
+import edu.ethz.user04.shared.requests.queuerequests.ReadAllMessagesRequest;
+import edu.ethz.user04.shared.requests.queuerequests.ReadPrivateMessageRequest;
+import edu.ethz.user04.shared.requests.queuerequests.ReadQueueRequest;
+
+
+public class MessageAPI implements ClientAPIInterface {
+	
+	public final static Logger LOGGER = MessagingSystemLogger.getLoggerForClass(MessageAPI.class.getName());
+	
+	Socket socket;
+	ObjectOutputStream outputStream;
+	ObjectInputStream  inputStream;
+	int tooManyMessages=10000;
+	int clientId; 
+	int NUMBER_OF_RR_POLLS = 5; // Number of times to poll for Response in Req-Resp communication
+	boolean isRequestResponse = false; // Client is One-way by default
+	int context = 0; // Default context is 0 (= Broadcast messages)
+	public boolean debugModeOn=false;
+	private static final int DEFAULT_SERVER_PORT = 5009;
+	private static final String DEFAULT_SERVER_URL = "127.0.0.1";
+	
+	// OT - If this is enabled, the message handler keeps listening for objects.
+	// Message Handler terminates only when it receives a CloseConnectionObject
+	// This should match BATCH_REQUESTS in MessageHandler
+	// Maybe read this from config?
+	private final static boolean BATCH_REQUESTS = false;
+	
+	String brokerServiceURL;
+	int port;
+	
+	public MessageAPI( String brokerServiceURL, int port) throws UnknownHostException, IOException{
+		this.brokerServiceURL=brokerServiceURL;
+		this.port=port;
+
+	}
+	
+	/**
+	 * Returns an instance of ClientAPI for client to perform functions
+	 * MessageBrokerService URL defaults to 127.0.0.1
+	 * MessageBrokerService Port defaults to 5009
+	 * @param clientID Client ID
+	 * @throws UnknownHostException
+	 * @throws IOException
+	 */
+	public MessageAPI(int clientID) throws UnknownHostException, IOException {
+		this(clientID, DEFAULT_SERVER_URL);
+	}
+	
+	/**
+	 * Returns an instance of ClientAPI for client to perform functions
+	 * MessageBrokerService Port defaults to 5009
+	 * @param clientID Client ID
+	 * @param brokerServiceURL URL/DNS for the MessageBrokerService. Default is 127.0.0.1
+	 * @throws UnknownHostException
+	 * @throws IOException
+	 */
+	public MessageAPI(int clientID, String brokerServiceURL) throws UnknownHostException, IOException {
+		this(clientID, brokerServiceURL, DEFAULT_SERVER_PORT);
+	}
+	
+	/**
+	 * Returns an instance of ClientAPI for client to perform functions
+	 * MessageBrokerService Port defaults to 5009
+	 * @param clientID Client ID
+	 * @param brokerServiceURL URL/DNS for the MessageBrokerService. Default is 127.0.0.1
+	 * @param port Post open at the Server. Default is 5009
+	 * @throws UnknownHostException
+	 * @throws IOException
+	 */
+	public MessageAPI(int clientID, String brokerServiceURL, int port) throws UnknownHostException, IOException {
+		this.clientId = clientID;
+		this.brokerServiceURL = brokerServiceURL;
+		this.port = port;
+		
+		LOGGER.info(String.format("[DEBUG] Client %d connecting to %s", clientID, brokerServiceURL));
+		
+		// socket = new Socket(brokerServiceURL, 5009);
+		// outputStream = new ObjectOutputStream(socket.getOutputStream());
+		// inputStream = new ObjectInputStream( socket.getInputStream());
+	}
+	
+	@Deprecated
+	/**
+	 * DO NOT use this anymore. Make MessageAPI mandate ClientID to be passed.
+	 * @throws UnknownHostException
+	 * @throws IOException
+	 */
+	public MessageAPI() throws UnknownHostException, IOException{
+	this.brokerServiceURL="127.0.0.1";
+	this.port=5009;
+
+	}
+	
+	
+	private void initConnection(){//TODO force retry after certan sleep period
+		try {
+			socket = new Socket(brokerServiceURL, port);
+			outputStream = new ObjectOutputStream(socket.getOutputStream());
+			inputStream = new ObjectInputStream( socket.getInputStream()); //TODO why new object ??
+		} catch (UnknownHostException e) {
+			// TODO Auto-generated catch block
+			LOGGER.log(Level.SEVERE,"MessageAPI unable to connect to the Middleware",e);
+			e.printStackTrace();
+			
+		} catch (IOException e) {
+			LOGGER.log(Level.SEVERE,"MessageAPI unable to connect to the Middleware",e);
+
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		
+		
+	}
+	
+	@Override
+	public void setCliendID(int clientId) {
+		this.clientId = clientId;
+	}
+
+	@Override
+	public void enableRequestResponseMode(int context) {
+		this.isRequestResponse = true;
+		this.context = context;
+	}
+
+	@Override
+	public void disableRequestResponseMode() {
+		this.isRequestResponse = false;
+		this.context = 0;
+	}
+	
+	@Override
+	public boolean sendMessage(WriteMessageRequest writeMessageRequest) {
+		Socket tempSocket = null;
+		ObjectOutputStream outputStream = null;
+		ObjectInputStream inputStream = null;
+		
+		RequestResponse resp = new RequestResponse(false);
+		writeMessageRequest.message.setSenderId(this.clientId);
+
+		try {
+			tempSocket = new Socket(brokerServiceURL, port);
+
+			// Write Request object
+			outputStream = new ObjectOutputStream(tempSocket.getOutputStream());
+			LOGGER.info(String.format(
+					"type=%s, request_type=%s, request_id=%s, tag=%s",
+					"request", "write_message_request",
+					writeMessageRequest.getRequestUUID(),
+					"send_request_from_api_to_server"));
+			outputStream.writeObject(writeMessageRequest);
+
+			// Read Response object
+			inputStream = new ObjectInputStream(tempSocket.getInputStream());
+			resp = (RequestResponse) inputStream.readObject();
+			LOGGER.info(String.format(
+					"type=%s, request_type=%s, request_id=%s, tag=%s",
+					"response", "write_message_request",
+					writeMessageRequest.getRequestUUID(),
+					"receive_response_from_server_to_api"));
+		} catch (Exception e) {
+			LOGGER.log(Level.WARNING, "SendMessage failed for RequestID"
+					+ writeMessageRequest.getRequestUUID(), e);
+		}
+		
+		try {
+			outputStream.close();
+			inputStream.close();
+			tempSocket.close();
+		} catch (IOException e) {
+			LOGGER.log(Level.WARNING, "Unable to close socket "
+					+ writeMessageRequest.getRequestUUID(), e);
+		}
+
+		return resp.success;
+	}
+
+
+	@Override
+	public Message sendRequestResponseMessage(
+			WriteMessageRequest writeMessageRequest, long timeout) {
+		
+		boolean flag = false;
+
+		try {
+			writeMessageRequest.message.setContext(this.context);
+			writeMessageRequest.message.setSenderId(this.clientId);
+			// See who the message is being sent to, so that we can query for
+			// replies from client with the appropriate context
+			int receiverId = writeMessageRequest.message.getReceiverId();
+			
+			// 1. Send the request message
+			LOGGER.log(Level.INFO, String.format(
+					"[DEBUG] Sending Request %s from client %d to client %d within context %d",
+					writeMessageRequest.getRequestUUID(), this.clientId,
+					receiverId, this.context));
+			flag = sendMessage(writeMessageRequest);
+			
+			LOGGER.log(
+					Level.INFO,
+					String.format(
+							"[DEBUG] Client %d waiting for response from Client %d within context %d",
+							this.clientId, receiverId, this.context));
+			
+			// 2. Wait for Response message
+			if (flag) {
+				for (int i = 0; i < NUMBER_OF_RR_POLLS; i++) {
+					LOGGER.info("[DEBUG] Reading. Trying : " + i);
+					LOGGER.info(String
+									.format("[DEBUG]Attemping to read  messages from client %d, in queue %d, within context %d",
+											writeMessageRequest.message
+													.getReceiverId(),
+											writeMessageRequest.message
+													.getQueueIdList().get(0),
+											writeMessageRequest.message
+													.getContext()));
+					// Attempt reading from the other client, specifying the queue and context
+					Message reply = readOnePrivateMessage(new ReadPrivateMessageRequest(
+							receiverId, writeMessageRequest.message.getQueueIdList().get(0), true, true,
+							this.context));
+					if (reply == null) {
+						try {
+							Thread.sleep(timeout / NUMBER_OF_RR_POLLS); 
+						} catch (InterruptedException e) {
+							LOGGER.log(
+									Level.WARNING,
+									"Something went wrong while polling for response for request "
+											+ writeMessageRequest
+													.getRequestUUID(), e);
+						}
+					}
+					else {
+						LOGGER.info(String.format(
+								"[DEBUG] Received reply %s for request %s.",
+								reply, writeMessageRequest.getRequestUUID()));
+						return reply;
+					}
+				}
+			}
+			
+		} catch (Exception e) {
+			LOGGER.log(Level.WARNING, "SendMessage failed for RequestID"
+					+ writeMessageRequest.getRequestUUID(), e);
+		}
+		
+		// Something went wrong. Return null.
+		return null;
+
+	}
+
+	
+	@Override
+	public List<Message> readMultipleMessages(
+			ReadAllMessagesRequest readAllRequest) {
+		Socket tempSocket = null;
+		ObjectOutputStream outputStream = null;
+		ObjectInputStream inputStream = null;
+		
+		List<Message> resultList = new ArrayList<Message>();
+		RequestResponse respObj = new RequestResponse(false);
+		
+		readAllRequest.setReceiverID(this.clientId);
+
+		try {
+			tempSocket = new Socket(brokerServiceURL, port);
+
+			// Write Request object
+			outputStream = new ObjectOutputStream(tempSocket.getOutputStream());
+			outputStream.writeObject(readAllRequest);
+
+			// Read Response object
+			inputStream = new ObjectInputStream(tempSocket.getInputStream());
+
+			Object obj = inputStream.readObject();
+			if (obj == null) {
+				LOGGER.log(Level.WARNING, String.format(
+						"[DEBUG] ReadAllMessagesRequest %s returned null",
+						readAllRequest.getRequestUUID()));
+			} else
+				resultList = (List<Message>) respObj.getPayload();
+
+		} catch (Exception e) {
+			LOGGER.log(Level.WARNING, "SendMessage failed for RequestID"
+					+ readAllRequest.getRequestUUID(), e);
+		}
+		
+		try {
+			outputStream.close();
+			inputStream.close();
+			tempSocket.close();
+		} catch (IOException e) {
+			LOGGER.log(Level.WARNING, "Unable to close socket "
+					+ readAllRequest.getRequestUUID(), e);
+		}
+
+		return resultList;
+	}
+	
+
+	
+	@Override
+	public Message readOnePrivateMessage(ReadPrivateMessageRequest readMessageRequest) {
+		Socket tempSocket = null;
+		ObjectOutputStream outputStream = null;
+		ObjectInputStream inputStream = null;
+		
+		Message message = null;
+		
+		readMessageRequest.setReceiverID(this.clientId);
+		
+		try {
+			tempSocket = new Socket(brokerServiceURL, port);
+
+			// Write Request object
+			outputStream = new ObjectOutputStream(tempSocket.getOutputStream());
+			outputStream.writeObject(readMessageRequest);
+
+			// Read Response object
+			inputStream = new ObjectInputStream(tempSocket.getInputStream());
+			message = (Message) inputStream.readObject();
+
+		} catch (Exception e) {
+			LOGGER.log(Level.SEVERE, "SendMessage failed for RequestID"
+					+ readMessageRequest.getRequestUUID(), e);
+		}
+		
+		try {
+			outputStream.close();
+			inputStream.close();
+			tempSocket.close();
+		} catch (IOException e) {
+			LOGGER.log(Level.WARNING, "Unable to close socket "
+					+ readMessageRequest.getRequestUUID(), e);
+		}
+
+		return message;
+	}
+
+	
+	@Override
+	public boolean deleteMessage(DeleteMessageRequest deleteMessageRequest) {
+		RequestResponse response = new RequestResponse(false);
+		Socket tempSocket = null;
+		ObjectOutputStream outputStream = null;
+		ObjectInputStream inputStream = null;
+		
+		deleteMessageRequest.setClientid(this.clientId);
+		
+		try {
+			tempSocket = new Socket(brokerServiceURL, port);
+
+			// Write Request object
+			outputStream = new ObjectOutputStream(tempSocket.getOutputStream());
+			outputStream.writeObject(deleteMessageRequest);
+
+			// Read Response object
+			inputStream = new ObjectInputStream(tempSocket.getInputStream());
+			response = (RequestResponse) inputStream.readObject();
+
+		} catch (Exception e) {
+			LOGGER.log(Level.SEVERE, "SendMessage failed for RequestID"
+					+ deleteMessageRequest.getRequestUUID(), e);
+		}
+		
+		try {
+			outputStream.close();
+			inputStream.close();
+			tempSocket.close();
+		} catch (IOException e) {
+			LOGGER.log(Level.WARNING, "Unable to close socket "
+					+ deleteMessageRequest.getRequestUUID(), e);
+		}
+
+		return response.success;
+	}
+	
+	
+	@Override
+	public boolean createQueue(CreateQueueRequest createQueueRequest) {
+		RequestResponse response = new RequestResponse(false);
+		Socket tempSocket = null;
+		ObjectOutputStream outputStream = null;
+		ObjectInputStream inputStream = null;
+		
+		createQueueRequest.setClientid(this.clientId);
+		
+		try {
+			tempSocket = new Socket(brokerServiceURL, port);
+
+			// Write Request object
+			outputStream = new ObjectOutputStream(tempSocket.getOutputStream());
+			outputStream.writeObject(createQueueRequest);
+
+			// Read Response object
+			inputStream = new ObjectInputStream(tempSocket.getInputStream());
+			response = (RequestResponse) inputStream.readObject();
+
+		} catch (Exception e) {
+			LOGGER.log(Level.SEVERE, "SendMessage failed for RequestID"
+					+ createQueueRequest.getRequestUUID(), e);
+		}
+		
+		try {
+			outputStream.close();
+			inputStream.close();
+			tempSocket.close();
+		} catch (IOException e) {
+			LOGGER.log(Level.WARNING, "Unable to close socket "
+					+ createQueueRequest.getRequestUUID(), e);
+		}
+
+		return response.success;
+	}
+
+	
+	@Override
+	public boolean deleteQueue(DeleteQueueRequest deleteQueueRequest) {
+		Boolean response = false;
+		Socket tempSocket = null;
+		ObjectOutputStream outputStream = null;
+		ObjectInputStream inputStream = null;
+		
+		try {
+			tempSocket = new Socket(brokerServiceURL, port);
+
+			// Write Request object
+			outputStream = new ObjectOutputStream(tempSocket.getOutputStream());
+			outputStream.writeObject(deleteQueueRequest);
+
+			// Read Response object
+			inputStream = new ObjectInputStream(tempSocket.getInputStream());
+			response = (Boolean) inputStream.readObject();
+
+		} catch (Exception e) {
+			LOGGER.log(Level.SEVERE, "SendMessage failed for RequestID"
+					+ deleteQueueRequest.getRequestUUID(), e);
+		}
+		
+		try {
+			outputStream.close();
+			inputStream.close();
+			tempSocket.close();
+		} catch (IOException e) {
+			LOGGER.log(Level.WARNING, "Unable to close socket "
+					+ deleteQueueRequest.getRequestUUID(), e);
+		}
+
+		return response;
+	}
+	
+	
+	public ArrayList<Integer> getQueuesWithRelevantMessages(QueryForQueuesWithMessagesForMe queueRequest){
+		// This method returns null in case something goes wrong.
+		ArrayList<Integer> queuesWithRelevantMessages = null;
+		RequestResponse response = new RequestResponse(false);
+		Socket tempSocket = null;
+		ObjectOutputStream outputStream = null;
+		ObjectInputStream inputStream = null;
+		
+		queueRequest.setReceiverId(this.clientId);
+		
+		try {
+			tempSocket = new Socket(brokerServiceURL, port);
+
+			// Write Request object
+			outputStream = new ObjectOutputStream(tempSocket.getOutputStream());
+			outputStream.writeObject(queueRequest);
+
+			// Read Response object
+			inputStream = new ObjectInputStream(tempSocket.getInputStream());
+			response = (RequestResponse) inputStream.readObject();
+			
+			if (response.success) {
+				if (response.getPayload() instanceof ArrayList<?>) {
+					queuesWithRelevantMessages = (ArrayList<Integer>) response
+							.getPayload();
+				} else
+					throw new Exception(
+							"Unable to cast response for request ID "
+									+ queueRequest.getRequestUUID()
+									+ ". Expected ArrayList<Integer>, got something else");
+			} else {
+				LOGGER.warning(String.format("Response for Request %s failed. Returning null.", queueRequest.getRequestUUID()));
+			}
+
+		} catch (Exception e) {
+			LOGGER.log(Level.SEVERE, "SendMessage failed for RequestID"
+					+ queueRequest.getRequestUUID(), e);
+		}
+		
+		try {
+			outputStream.close();
+			inputStream.close();
+			tempSocket.close();
+		} catch (IOException e) {
+			LOGGER.log(Level.WARNING, "Unable to close socket "
+					+ queueRequest.getRequestUUID(), e);
+		}
+
+		return queuesWithRelevantMessages;	
+	}
+	
+	@Deprecated
+	public boolean closeConnection(){
+		CloseConnection close = new CloseConnection();
+		try {
+			outputStream.writeObject(close);
+			outputStream.close();
+			inputStream.close();
+			socket.close();
+		} catch (IOException e) {
+			System.err.println(e.getMessage());
+			e.printStackTrace();
+		}
+		return false;
+	}
+
+}

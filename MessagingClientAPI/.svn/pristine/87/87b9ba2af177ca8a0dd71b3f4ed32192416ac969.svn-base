@@ -1,0 +1,302 @@
+package edu.ethz.asl.user04.clientAPI;
+
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
+import java.net.Socket;
+import java.net.UnknownHostException;
+import java.util.ArrayList;
+import java.util.List;
+
+import javax.print.DocFlavor.INPUT_STREAM;
+
+import edu.ethz.asl.user04.shared.entity.Message;
+import edu.ethz.user04.shared.requests.messagerequests.DeleteMessageRequest;
+import edu.ethz.user04.shared.requests.messagerequests.ReadMessageRequest;
+import edu.ethz.user04.shared.requests.messagerequests.WriteMessageRequest;
+import edu.ethz.user04.shared.requests.queuerequests.CloseConnection;
+import edu.ethz.user04.shared.requests.queuerequests.CreateQueueRequest;
+import edu.ethz.user04.shared.requests.queuerequests.DeleteQueueRequest;
+import edu.ethz.user04.shared.requests.queuerequests.ReadAllMessagesRequest;
+import edu.ethz.user04.shared.requests.queuerequests.ReadPrivateMessageRequest;
+import edu.ethz.user04.shared.requests.queuerequests.ReadQueueRequest;
+
+public class ClientAPI implements ClientAPIInterface {
+	Socket socket;
+	ObjectOutputStream outputStream;
+	ObjectInputStream  intputStream;
+	int tooManyMessages=10000;
+	int clientId;
+	int NUMBER_OF_RR_POLLS = 5; // Number of times to poll for Response in Req-Resp communication
+	boolean isRequestResponse = false; // Client is One-way by default
+	int context = 0; // Default context is 0 (= Broadcast messages)
+	
+	
+	public ClientAPI( String ip, int port) throws UnknownHostException, IOException{
+		socket = new Socket(ip, port);
+		
+		outputStream = new ObjectOutputStream(socket.getOutputStream());
+		intputStream = new ObjectInputStream( socket.getInputStream()); //TODO why new object ??
+
+	}
+	
+	public ClientAPI() throws UnknownHostException, IOException{
+		socket = new Socket("127.0.0.1", 5009);
+		
+		outputStream = new ObjectOutputStream(socket.getOutputStream());
+		intputStream = new ObjectInputStream( socket.getInputStream()); //TODO why new object ??
+
+	}
+	
+	@Override
+	public void setCliendID(int clientId) {
+		this.clientId = clientId;
+	}
+
+	@Override
+	public void enableRequestResponseMode(int context) {
+		this.isRequestResponse = true;
+		this.context = context;
+	}
+
+	@Override
+	public void disableRequestResponseMode() {
+		this.isRequestResponse = false;
+		this.context = 0;
+	}
+
+	@Override
+	public boolean sendMessage(Message msg) {
+		msg.setSenderId(this.clientId);
+		WriteMessageRequest writeRequest = new WriteMessageRequest(msg);
+		try{
+			outputStream.writeObject(writeRequest);
+			//objectStream.close();
+		}
+		catch (Exception e){
+			System.out.println("exception, msj not sent");
+			return false;
+		}
+		return true;
+		
+		/**
+		 * send it herre
+		 * 
+		 * 
+		 */
+	}
+
+
+	@Override
+	public Message sendRequestResponseMessage(Message msg, long timeout) {
+		boolean flag = false;
+		
+		msg.setContext(this.context);
+		msg.setSenderId(this.clientId);
+		// See who the message is being sent to, so that we can query for
+		// replies from client with the appropriate context
+		int receiverId = msg.getReceiverId();
+		
+		// 1. Send the request message
+		flag = sendMessage(msg);
+		System.out.println("Dispatched Request-Response message: " + msg);
+		
+		// 2. Wait for Response message
+		if (flag) {
+			for (int i = 0; i < NUMBER_OF_RR_POLLS; i++) {
+				System.out.println("Reading. Trying : " + i);
+				System.out.println(String.format("Attemping to read  messages from client %d, in queue %d, with context %d", msg.getReceiverId(), msg.getQueueIdList().get(0), msg.getContext()));
+				Message reply = readOnePrivateMessage(new ReadPrivateMessageRequest(
+						receiverId, msg.getQueueIdList().get(0), true, true,
+						this.context));
+				if (reply == null) {
+					try {
+						Thread.sleep(timeout / NUMBER_OF_RR_POLLS);
+					} catch (InterruptedException e) {
+						e.printStackTrace();
+					}
+				}
+				else {
+					System.out.println("Reply received: " + reply);
+					return reply;
+				}
+			}
+		}
+		return null;
+	}
+
+	/*@Override
+	public List<Message> readAllPrivateMessage(int receiverID, int queueID,boolean removeAfterPeek,boolean  orderByTime) {
+		List<Message> resultList = new ArrayList<Message>();
+		try {
+			int i=0;
+			while(true){
+				ReadAllPrivateMessagesRequest readAllRequest = null;
+				readAllRequest = new ReadAllPrivateMessagesRequest(receiverID, queueID, removeAfterPeek, orderByTime,i);
+				outputStream.writeObject(readAllRequest);
+				try {
+					//TODO add check case of null and non list format 
+					Object obj =  intputStream.readObject();
+					if(obj==null){
+						System.err.println("<Error, readALLprivateMEssages returned a null");
+					}
+						
+					 List<Message> result =(List<Message>)obj;
+					if(result.size()==0)
+						return resultList;
+					resultList.addAll(result);
+					i++;
+					
+				} catch (ClassNotFoundException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				}
+			}
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		
+		return resultList;
+	}*/
+	
+
+
+	@Override
+	public List<Message> readMultipleMessages(
+			ReadAllMessagesRequest readAllRequest) {
+		List<Message> resultList = new ArrayList<Message>();
+		try {
+			readAllRequest.setReceiverID(this.clientId);
+			outputStream.writeObject(readAllRequest);
+			try {
+				// TODO add check case of null and non list format
+				Object obj = intputStream.readObject();
+				if (obj == null) {
+					System.err
+							.println("<Error, readALLprivateMEssages returned a null");
+					return resultList;
+				}
+
+				List<Message> result = (List<Message>) obj;
+				return result;
+			} catch (ClassNotFoundException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+
+		return resultList;
+	}
+	
+	@Override
+	public Message readOnePrivateMessage(ReadPrivateMessageRequest readMessageRequest) {
+		Message back = null;
+		readMessageRequest.setReceiverID(this.clientId);
+		
+		try {
+			outputStream.writeObject(readMessageRequest);
+			 try {
+				back= (Message)intputStream.readObject();
+			} catch (ClassNotFoundException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		
+		return back;
+	}
+	
+
+	public Message readFromQueue ( ReadQueueRequest rqr){
+		Message back = null;
+		try {
+			outputStream.writeObject(rqr);
+			 try {
+				back= (Message) intputStream.readObject();
+			} catch (ClassNotFoundException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		
+		return back;
+		
+	}
+
+	@Override
+	public boolean deleteMessage(DeleteMessageRequest deleteMessageRequest) {
+		// TODO Auto-generated method stub
+		return false;
+	}
+	
+	
+	@Override
+	public boolean createQueue(CreateQueueRequest createQueueRequest) {
+		try {
+			outputStream.writeObject(createQueueRequest);			
+			Boolean retVal = (Boolean) intputStream.readObject();
+			return retVal;
+		} 
+		catch (Exception e) {
+			// TODO Auto-generated catch block
+			System.out.println("couldnot create Queue");
+			e.printStackTrace();
+		}
+		
+		return false;
+	}
+	/**
+	 * DOnt use this. USe readFromQueue Instead 
+	 */
+	@Override
+	public List<Message> readQueue(ReadQueueRequest readQueueRequest) {
+		 
+		return null;
+	}
+
+	@Override
+	public boolean deleteQueue(DeleteQueueRequest deleteQueueRequest) {
+		try {
+			outputStream.writeObject(deleteQueueRequest);			
+			Boolean retVal = (Boolean) intputStream.readObject();
+			System.out.println("retVal: "+"middleware ret: "+retVal);
+			return retVal;
+		} 
+		catch (Exception e) {
+			// TODO Auto-generated catch block
+			System.out.println("couldnot create Queue");
+			e.printStackTrace();
+		}
+		
+		return false;
+	}
+	
+	public boolean closeConnection(){
+		CloseConnection close = new CloseConnection();
+		try {
+			outputStream.writeObject(close);
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		return false;
+	}
+
+	
+
+
+
+	
+
+}

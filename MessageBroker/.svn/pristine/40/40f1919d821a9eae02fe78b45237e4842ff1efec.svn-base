@@ -1,0 +1,82 @@
+package edu.ethz.asl.user04.dbutils;
+
+import java.sql.Connection;
+import java.sql.SQLException;
+
+public class _SchemeScript {
+	public static void main( String[] args) throws SQLException{
+		DBManager db = new DBManager("myuser2", "127.0.0.1", "5432", "mydb1", "spartan",100);
+		Connection tmpC = db.newClientConnection();
+		SQLUtil    sql = new SQLUtil(tmpC);
+		
+		/*
+message_id (int)
+sender_id (int)
+receiver_id (int)
+queue_id (int)
+context (int)
+priority (int)
+time_of_arrival (timestamp)
+message (varchar)
+idx_sender: (sender_id)
+idx_receiver: (receiver_id)
+idx_queue: (queue_id)
+idx_receiver_priority: (receiver_id, priority)
+idx_receiver_timestamp:
+(receiver_id, time_of_arrival)
+		 */
+		
+		String createMessageTableSQL = "CREATE TABLE Message(" +
+				"messageID 		integer," +
+				"senderID		integer," +
+				"receiverID		integer," +
+				"queueID		integer," +
+				"context		integer," +
+				"priority		integer," +
+				"timeOfArrial	timestamp DEFAULT current_timestamp," +
+				"message		varchar(2000));";
+		int err1=sql.sendSQL(createMessageTableSQL);
+				
+		String createIndexOnMessage = "CREATE UNIQUE INDEX messageID_idx ON Message (messageID)";
+		int err2=sql.sendSQL(createIndexOnMessage);
+		createIndexOnMessage = "CREATE UNIQUE INDEX senderID_idx ON Message (senderID)";
+		int err3=sql.sendSQL(createIndexOnMessage);
+		createIndexOnMessage = "CREATE UNIQUE INDEX queueID_idx ON Message (queueID)";
+		int err4=sql.sendSQL(createIndexOnMessage);
+		createIndexOnMessage = "CREATE UNIQUE INDEX timeOfArrial_idx ON Message (timeOfArrial)";
+		int err5=sql.sendSQL(createIndexOnMessage);
+		createIndexOnMessage = "CREATE UNIQUE INDEX priority_idx ON Message (priority)";
+		int err6=sql.sendSQL(createIndexOnMessage);
+		/*
+		 * 
+client_id (int)
+client_type (varchar)
+client_name (varchar)
+creation_time (timestamp)
+		 * 
+		 * 
+		 */
+		String createClientTableSQL = "CREAT TABLE Client(," +
+				"clientTyp   varchar," +
+				"clientID	 integer PRIMARY KEY," +
+				"clientName	 varchar," +
+				"creationTime timestamp DEFAULT current_timestamp;";
+		int err10=sql.sendSQL(createClientTableSQL);
+		/*
+		 queue_id (int)
+queue_name (varchar)
+created_by (int)
+creation_time (timestamp)
+
+		 */
+		String createQtable = " CREATE TABLE Queue(" +
+				"queueID	integer PRIMARY KEY," +
+				"queueName	varchar," +
+				"createdBy	integer," +
+				"creationTime	timestamp DEFAULT current_timestamp;";
+		int err11=sql.sendSQL(createQtable);
+	
+		int a =0;
+	
+	}
+}

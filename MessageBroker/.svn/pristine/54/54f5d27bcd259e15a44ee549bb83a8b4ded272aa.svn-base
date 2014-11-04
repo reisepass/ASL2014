@@ -1,0 +1,333 @@
+package edu.ethz.asl.user04.messagebroker;
+
+import java.io.IOException;
+import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
+import java.net.Socket;
+import java.sql.Connection;
+import java.sql.SQLException;
+import java.util.ArrayList;
+import java.util.EmptyStackException;
+import java.util.List;
+import java.util.logging.Level;
+import java.util.logging.Logger;
+
+import edu.ethz.asl.user04.dbutils.DBManager;
+import edu.ethz.asl.user04.dbutils.SQLUtil;
+import edu.ethz.asl.user04.shared.entity.Message;
+import edu.ethz.asl.user04.shared.entity.RequestResponse;
+import edu.ethz.asl.user04.shared.logging.MessagingSystemLogger;
+import edu.ethz.user04.shared.requests.messagerequests.DeleteMessageRequest;
+import edu.ethz.user04.shared.requests.messagerequests.MessagingSystemRequest;
+import edu.ethz.user04.shared.requests.messagerequests.WriteMessageRequest;
+import edu.ethz.user04.shared.requests.queuerequests.CloseConnection;
+import edu.ethz.user04.shared.requests.queuerequests.CreateQueueRequest;
+import edu.ethz.user04.shared.requests.queuerequests.DeleteQueueRequest;
+import edu.ethz.user04.shared.requests.queuerequests.QueryForQueuesWithMessagesForMe;
+import edu.ethz.user04.shared.requests.queuerequests.ReadAllMessagesRequest;
+import edu.ethz.user04.shared.requests.queuerequests.ReadPrivateMessageRequest;
+import edu.ethz.user04.shared.requests.queuerequests.ReadQueueRequest;
+
+public class MessageHandler implements Runnable {
+
+	public final static Logger LOGGER = MessagingSystemLogger
+			.getLoggerForClass(MessageHandler.class.getName());
+	
+	// OT - If this is enabled, the message handler keeps listening for objects.
+	// Message Handler terminates only when it receives a CloseConnectionObject
+	// Maybe read this from config? 
+	private final static boolean BATCH_REQUESTS = false;
+
+	private final Socket socket;
+	DBManager dbC;
+	Object messageObject;
+	ObjectInputStream oi;
+	boolean debugOn = true;
+	int sleepBeforeConnectionRetry = 1000;
+	int resultChunkSize = 50;
+	ObjectOutputStream oo;
+
+	/**
+	 * messageObject needs to be one object from the queue
+	 * 
+	 * @param socket
+	 * @param dbPool
+	 */
+	public MessageHandler(Socket socket, DBManager dbPool) {
+		this.socket = socket;
+		this.dbC = dbPool;
+		debugOn = false;
+
+	}
+
+	public MessageHandler(Socket socket, DBManager dbPool, boolean debugOn) {
+		this.socket = socket;
+		this.dbC = dbPool;
+		this.debugOn = debugOn;
+
+	}
+
+	@Override
+	public void run() {
+
+		try {
+
+			oi = new ObjectInputStream(socket.getInputStream());
+			oo = new ObjectOutputStream(socket.getOutputStream());
+			
+			do {
+				messageObject = oi.readObject();
+
+				MessagingSystemRequest msr = (MessagingSystemRequest) messageObject;
+				LOGGER.info("Received request with ID " + msr.getRequestUUID());
+				LOGGER.info(String
+						.format("[METRIC] type=request request_type=MessageRequest request_id=%s tier=middleware tag=received_request", msr.getRequestUUID()));
+			
+				int timesTried = 1;
+				Connection conn = dbC.newClientConnection();
+
+				if (conn == null) {
+					LOGGER.severe("Failed to get DB connection");
+					while (timesTried < 15 && conn == null) {
+						try {
+							timesTried++;
+							Thread.sleep(sleepBeforeConnectionRetry);
+							conn = dbC.newClientConnection();
+						} catch (InterruptedException e) {
+							System.err.println("CantSleep " + e.getMessage());
+							e.printStackTrace();
+						}
+					}
+					if (conn == null)
+						throw new EmptyStackException();
+				}
+
+				SQLUtil sqlutil = new SQLUtil(conn, resultChunkSize);
+
+				// TODO return the id of the message you just wrote back to
+				// client
+				if (messageObject instanceof WriteMessageRequest) {
+					LOGGER.log(
+							Level.INFO,
+							"[DEBUG] WriteMessageRequest "
+									+ msr.getRequestUUID());
+
+					WriteMessageRequest messageRequest = (WriteMessageRequest) messageObject;
+					Message message = messageRequest.message;
+					ArrayList<Integer> result;
+					boolean success = true;
+					LOGGER.log(
+							Level.INFO,
+							String.format(
+									"[METRIC] type=request request_type=WriteMessageRequest request_id=%s tier=middleware tag=sending_request_from_server_to_database client_id=%d",
+									messageRequest.getRequestUUID(), messageRequest.message.getSenderId()));
+					
+					if (message.getQueueIdList().size() > 1) {
+						result = sqlutil.multiMessage(message.getPayload(),
+								message.getSenderId(), message.getReceiverId(),
+								message.getContext(), message.getPriority(),
+								message.getQueueIdList());
+						
+						for (Integer res : result) {
+							if (res == -1) {
+								success = false;
+								break;
+							}
+						}
+
+					} else {
+						// TODO makesure outside this that queuelsit always has
+						// atleast one elmentgetQueuesWithRelevantMessages
+						int resultSingle = sqlutil
+								.addMessage(message.getPayload(), message
+										.getSenderId(),
+										message.getReceiverId(), message
+												.getContext(), message
+												.getPriority(), message
+												.getQueueIdList().get(0));
+						LOGGER.log(
+								Level.INFO,
+								String.format(
+										"[METRIC] type=response request_type=WriteMessageRequest request_id=%s tier=middleware tag=received_response_at_server_from_database client_id=%d",
+										messageRequest.getRequestUUID(), messageRequest.message.getSenderId()));
+						success = resultSingle != -1;
+					}
+					
+
+					oo.writeObject(new RequestResponse(success, msr
+							.getRequestUUID()));
+					LOGGER.log(
+							Level.INFO,
+							String.format(
+									"[METRIC] type=response request_type=WriteMessageRequest request_id=%s tier=middleware tag=sending_response_from_middleware_to_api client_id=%d",
+									messageRequest.getRequestUUID(), messageRequest.message.getSenderId()));
+
+				} else if (messageObject instanceof DeleteMessageRequest) {
+					if (debugOn)
+						System.out.print("<DeleteMessageRequest>");
+					DeleteMessageRequest dmsr = (DeleteMessageRequest) messageObject;
+					boolean responseVal = false;
+					try {
+						responseVal = sqlutil.deleteMessage(dmsr.messageid);
+					} catch (SQLException e) {
+						e.printStackTrace();
+					}
+
+					oo.writeObject(new RequestResponse(responseVal));
+				}
+
+				else if (messageObject instanceof CreateQueueRequest) {
+					CreateQueueRequest createREQ = (CreateQueueRequest) messageObject;
+					LOGGER.log(
+							Level.INFO,
+							String.format(
+									"[METRIC] type=request request_type=CreateQueueRequest request_id=%s tier=middleware tag=received_request_at_server_from_api",
+									createREQ.getRequestUUID()));
+					boolean recVal = false;
+
+					// int recVal = -2;
+					try {
+						recVal = sqlutil.CreateQueue(createREQ.queueid,
+								createREQ.clientid, createREQ.queueName);
+					} catch (SQLException e) {
+						e.printStackTrace();
+					}
+
+					oo.writeObject(new RequestResponse(recVal));
+					LOGGER.log(
+							Level.INFO,
+							String.format(
+									"[METRIC] type=response request_type=CreateQueueRequest request_id=%s tier=middleware tag=return_response_from_server_to_api",
+									createREQ.getRequestUUID()));
+
+				} else if (messageObject instanceof DeleteQueueRequest) {
+					if (debugOn)
+						System.out.print("<DeleteQueueRequest>");
+					DeleteQueueRequest mesgq = (DeleteQueueRequest) messageObject;
+					boolean resp;
+					try {
+						resp = sqlutil.deleteQueue(mesgq.queueid);
+					} catch (SQLException e) {// TODO inform the client
+						System.err.println(e.getMessage());
+						resp = false;
+					}
+					oo.writeObject(new Boolean(resp));
+
+				} else if (messageObject instanceof QueryForQueuesWithMessagesForMe) {
+					if (debugOn)
+						System.out.print("<QueryForQueuesWithMessagesForMe>");
+					QueryForQueuesWithMessagesForMe queryRequest = (QueryForQueuesWithMessagesForMe) messageObject;
+					int receiverId = queryRequest.receiverId;
+					ArrayList<Integer> resp;
+					try {
+						resp = sqlutil
+								.getQueuesWithRelevantMessages(receiverId);
+					} catch (SQLException e) {
+						System.err.println(e.getMessage());
+						resp = null;
+					}
+					// it was initially resp.size()!=0; but a resp of size 0 means that user simply has no messages 
+					oo.writeObject(new RequestResponse(resp!=null,
+							(Object) resp));
+				} else if (messageObject instanceof ReadQueueRequest) {
+					ReadQueueRequest mesgq = (ReadQueueRequest) messageObject;
+
+					if (debugOn)
+						System.out.print("<ReadQueueRecieved>");
+					
+					Message sendBack = null;
+					if (mesgq.orderByTime) {
+						sendBack = sqlutil.getQueueClosestTime(mesgq.queueId,
+								mesgq.removeAfter);
+					} else {
+						sendBack = sqlutil.getQueuePriorityFirst(mesgq.queueId,
+								mesgq.removeAfter);
+					}
+					oo.writeObject(sendBack);
+
+				} else if (messageObject instanceof CloseConnection) {
+					if (debugOn)
+						System.out.print("<CloseConnection>");
+					
+					sqlutil.closeSQLconnection();
+					oi.close();
+					oo.close();
+					socket.close();
+
+				} else if (messageObject instanceof ReadPrivateMessageRequest) {
+					if (debugOn)
+						System.out.print("<ReadPrivateMessageRequest>");
+					ReadPrivateMessageRequest mesgq = (ReadPrivateMessageRequest) messageObject;
+					Message sendBack;
+
+					sendBack = sqlutil.getPrivateMessage(-1, mesgq.receiverID,
+							mesgq.queueID, mesgq.removeAfterPeek, mesgq.orderByTime, mesgq.getContext());
+
+					oo.writeObject(sendBack);
+
+				} else if (messageObject instanceof ReadAllMessagesRequest) {
+					if (debugOn)
+						System.out.print("<ReadAllMessagesRequest>");
+					ReadAllMessagesRequest param = (ReadAllMessagesRequest) messageObject;
+					List<Message> result = null;
+					try {
+						result = sqlutil.getAllPrivateMessages(param.queueID,
+								param.removeAfterPeek, param.orderByTime,
+								param.receiverID, param.page);
+					} catch (SQLException e) {
+						LOGGER.log(Level.SEVERE, String.format(
+								"ReadAllMessagesRequest %s failed",
+								param.getRequestUUID()), e);
+					}
+					oo.writeObject(result);
+
+				}
+
+				else {
+					System.out.println("Unable to detect MEssage Type Sent");
+					sqlutil.closeSQLconnection();
+					oi.close();
+					oo.close();
+					socket.close();
+				}
+
+				sqlutil.closeSQLconnection();
+
+				try {
+					if (!conn.isClosed())
+						conn.close();
+
+				} catch (SQLException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				}
+				
+				LOGGER.info(String
+						.format("[METRIC] type=response request_type=MessageRequest request_id=%s tier=middleware tag=completed_request", msr.getRequestUUID()));
+				
+			} while(BATCH_REQUESTS);
+		} catch (IOException e) { // Send message back to client to resent
+									// Package // if thats the problem
+			System.err.println("ERR186" + e.getMessage());
+			// TODO before exiting send an Error back to the client so he knows
+			// to stop listening before it closes
+			e.printStackTrace();
+
+			try {
+
+				oi.close();
+				oo.close();
+				socket.close();
+
+			} catch (IOException e1) {
+				e1.printStackTrace();
+			}
+
+		} catch (ClassNotFoundException e) {
+			System.err.println("ERR188" + e.getMessage());
+			e.printStackTrace();
+		}
+
+	}
+
+}

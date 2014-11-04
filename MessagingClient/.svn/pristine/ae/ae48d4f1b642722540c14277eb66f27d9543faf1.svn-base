@@ -1,0 +1,121 @@
+package messageAPIFocusedTests;
+
+/**
+ * @Author Amr
+ * 
+ * test creates 50 new queues, in each queues it sends a message from client one
+ * to client two
+ * 
+ * then attempts to delete al the 50 messages (by rading them first and getting their ids)
+ * and then attempts to delete tjem again (delete nonexistent messages) which shud fail as the read
+ * functionality will return null
+ * 
+ * DEPENDENCIES: send message, createqueue, readPrivateMessage
+ * 
+ * TEST SHOULD BE DONE WITH EMPTYY
+ * MESSAGES AND QUEUES TABLE!!!!
+ */
+
+import edu.ethz.asl.user04.clientAPI.MessageAPI;
+import edu.ethz.asl.user04.messagebroker.MessageBrokerService;
+import edu.ethz.asl.user04.shared.entity.Message;
+import edu.ethz.user04.shared.requests.messagerequests.DeleteMessageRequest;
+import edu.ethz.user04.shared.requests.messagerequests.WriteMessageRequest;
+import edu.ethz.user04.shared.requests.queuerequests.CreateQueueRequest;
+import edu.ethz.user04.shared.requests.queuerequests.ReadPrivateMessageRequest;
+
+public class testDeleteMessage {
+	
+	public static void sendMessagesAndCreateQueues(MessageAPI mapi){
+		
+		for(int i =0; i<50; i++){
+			CreateQueueRequest createQueue = new CreateQueueRequest(i, "queue "+i);
+			mapi.createQueue(createQueue);
+		}
+		
+		for(int i =0; i<50; i++){
+			// message from client 1 to client 2
+			Message msg = new Message(1, i, "message "+i, 2);
+			WriteMessageRequest writeMessage = new WriteMessageRequest(msg);
+			mapi.sendMessage(writeMessage);
+		}
+		
+	}
+	
+	/*
+	 * 
+	 * preconditions
+	 * messages are already there, wil just be deleted
+	 */
+	public static boolean deleteMessages(MessageAPI mapi){
+		boolean result = true;
+		for(int i =0; i<50; i++){
+			ReadPrivateMessageRequest readRequest = new ReadPrivateMessageRequest(1, i, false, false);
+			Message msg = mapi.readOnePrivateMessage(readRequest);
+			DeleteMessageRequest deleteRequest = new DeleteMessageRequest(msg.getMessageId());
+			result &= mapi.deleteMessage(deleteRequest);
+		
+		}
+		return result;
+	}
+	
+	/*
+	 * Read shoud already return a null message, so sdeletion shud not be done
+	 * 
+	 * return true if couldn't delete the messages (ie functionality is as we require)
+	 * 
+	 * 
+	 */
+	
+	public static boolean deleteNonExistentMessages(MessageAPI mapi){
+		boolean result = true;
+		for(int i =0; i<50; i++){
+			ReadPrivateMessageRequest readRequest = new ReadPrivateMessageRequest(1, i, false, false);
+			Message msg = mapi.readOnePrivateMessage(readRequest);
+			if(msg!=null){
+				result = false;
+				break;
+			}
+		
+		}
+		return result;
+	}
+
+	
+	
+	public static boolean test(){
+		
+		
+		MessageBrokerService service = new MessageBrokerService();
+		MessageAPI mapi = null;
+		try{
+			mapi = new MessageAPI();
+		}
+		catch(Exception e){
+			
+		}
+		
+		boolean result = true;
+		
+		mapi.setCliendID(1);
+		// creates necessary messages and queues
+		sendMessagesAndCreateQueues(mapi);
+		
+		// deletes all the messages
+		mapi.setCliendID(2);
+		result &=deleteMessages(mapi);
+		
+		
+		// attempts to delete all messages again, when method returns true
+		
+		result &= deleteNonExistentMessages(mapi);
+		return result;
+		
+	
+	}
+	
+	public static void main(String[]args){
+		System.out.println(test());
+	}
+
+}

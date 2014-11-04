@@ -1,0 +1,6 @@
+db_url=localhost
+db_name=ASL_1
+db_port=5009
+username=tribhu
+password=gnus1mas
+connection_limit=25

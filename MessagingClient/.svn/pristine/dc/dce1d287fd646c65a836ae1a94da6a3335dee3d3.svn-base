@@ -1,0 +1,7 @@
+mw_url=127.0.0.1
+mw_port=5009
+
+num_queues=50
+num_peekclients=25
+num_pullclients=25
+start_idx_readers=1

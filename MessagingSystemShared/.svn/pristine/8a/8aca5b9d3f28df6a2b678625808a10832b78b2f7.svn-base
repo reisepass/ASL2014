@@ -1,0 +1,13 @@
+package edu.ethz.user04.shared.requests.queuerequests;
+
+import java.io.Serializable;
+
+public class QueryForQueuesWithMessagesForMe implements Serializable {
+	
+	private static final long serialVersionUID = 1L;
+	int messageId;
+	public QueryForQueuesWithMessagesForMe(int mId){
+		messageId = mId;
+	}
+
+}

@@ -1,0 +1,270 @@
+--
+-- PostgreSQL database dump
+--
+
+-- Dumped from database version 9.1.9
+-- Dumped by pg_dump version 9.1.9
+-- Started on 2013-10-11 19:21:09 CEST
+
+SET statement_timeout = 0;
+SET client_encoding = 'UTF8';
+SET standard_conforming_strings = on;
+SET check_function_bodies = false;
+SET client_min_messages = warning;
+
+--
+-- TOC entry 168 (class 3079 OID 11678)
+-- Name: plpgsql; Type: EXTENSION; Schema: -; Owner: 
+--
+
+CREATE EXTENSION IF NOT EXISTS plpgsql WITH SCHEMA pg_catalog;
+
+
+--
+-- TOC entry 1941 (class 0 OID 0)
+-- Dependencies: 168
+-- Name: EXTENSION plpgsql; Type: COMMENT; Schema: -; Owner: 
+--
+
+COMMENT ON EXTENSION plpgsql IS 'PL/pgSQL procedural language';
+
+
+SET search_path = public, pg_catalog;
+
+SET default_tablespace = '';
+
+SET default_with_oids = false;
+
+--
+-- TOC entry 166 (class 1259 OID 16459)
+-- Dependencies: 1918 5
+-- Name: client; Type: TABLE; Schema: public; Owner: tribhu; Tablespace: 
+--
+
+CREATE TABLE client (
+    clienttyp character varying,
+    clientid integer NOT NULL,
+    clientname character varying,
+    creationtime timestamp without time zone DEFAULT now()
+);
+
+
+ALTER TABLE public.client OWNER TO tribhu;
+
+--
+-- TOC entry 162 (class 1259 OID 16424)
+-- Dependencies: 1915 5
+-- Name: clients; Type: TABLE; Schema: public; Owner: tribhu; Tablespace: 
+--
+
+CREATE TABLE clients (
+    clienttype character varying,
+    clientid integer NOT NULL,
+    clientname character varying,
+    creationtime timestamp without time zone DEFAULT now()
+);
+
+
+ALTER TABLE public.clients OWNER TO tribhu;
+
+--
+-- TOC entry 165 (class 1259 OID 16452)
+-- Dependencies: 1917 5
+-- Name: message; Type: TABLE; Schema: public; Owner: tribhu; Tablespace: 
+--
+
+CREATE TABLE message (
+    messageid integer,
+    senderid integer,
+    receiverid integer,
+    queueid integer,
+    context integer,
+    priority integer,
+    timeofarrial timestamp without time zone DEFAULT now(),
+    message character varying(2000)
+);
+
+
+ALTER TABLE public.message OWNER TO tribhu;
+
+--
+-- TOC entry 164 (class 1259 OID 16449)
+-- Dependencies: 5
+-- Name: messageid_seq; Type: SEQUENCE; Schema: public; Owner: tribhu
+--
+
+CREATE SEQUENCE messageid_seq
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+ALTER TABLE public.messageid_seq OWNER TO tribhu;
+
+--
+-- TOC entry 161 (class 1259 OID 16417)
+-- Dependencies: 1912 1913 1914 5
+-- Name: messages; Type: TABLE; Schema: public; Owner: tribhu; Tablespace: 
+--
+
+CREATE TABLE messages (
+    messageid integer DEFAULT nextval('messageid_seq'::regclass),
+    senderid integer,
+    receiverid integer,
+    queueid integer,
+    context integer,
+    priority integer,
+    timeofarrival timestamp without time zone DEFAULT now(),
+    message character varying(2000),
+    deleted boolean DEFAULT false
+);
+
+
+ALTER TABLE public.messages OWNER TO tribhu;
+
+--
+-- TOC entry 167 (class 1259 OID 16468)
+-- Dependencies: 1919 5
+-- Name: queue; Type: TABLE; Schema: public; Owner: tribhu; Tablespace: 
+--
+
+CREATE TABLE queue (
+    queueid integer NOT NULL,
+    queuename character varying,
+    createdby integer,
+    creationtime timestamp without time zone DEFAULT now()
+);
+
+
+ALTER TABLE public.queue OWNER TO tribhu;
+
+--
+-- TOC entry 163 (class 1259 OID 16433)
+-- Dependencies: 1916 5
+-- Name: queues; Type: TABLE; Schema: public; Owner: tribhu; Tablespace: 
+--
+
+CREATE TABLE queues (
+    queueid integer NOT NULL,
+    queuename character varying,
+    createdby integer,
+    creationtime timestamp without time zone DEFAULT now()
+);
+
+
+ALTER TABLE public.queues OWNER TO tribhu;
+
+--
+-- TOC entry 1927 (class 2606 OID 16432)
+-- Dependencies: 162 162 1935
+-- Name: client_pkey; Type: CONSTRAINT; Schema: public; Owner: tribhu; Tablespace: 
+--
+
+ALTER TABLE ONLY clients
+    ADD CONSTRAINT client_pkey PRIMARY KEY (clientid);
+
+
+--
+-- TOC entry 1931 (class 2606 OID 16467)
+-- Dependencies: 166 166 1935
+-- Name: client_pkey1; Type: CONSTRAINT; Schema: public; Owner: tribhu; Tablespace: 
+--
+
+ALTER TABLE ONLY client
+    ADD CONSTRAINT client_pkey1 PRIMARY KEY (clientid);
+
+
+--
+-- TOC entry 1929 (class 2606 OID 16441)
+-- Dependencies: 163 163 1935
+-- Name: queue_pkey; Type: CONSTRAINT; Schema: public; Owner: tribhu; Tablespace: 
+--
+
+ALTER TABLE ONLY queues
+    ADD CONSTRAINT queue_pkey PRIMARY KEY (queueid);
+
+
+--
+-- TOC entry 1933 (class 2606 OID 16476)
+-- Dependencies: 167 167 1935
+-- Name: queue_pkey1; Type: CONSTRAINT; Schema: public; Owner: tribhu; Tablespace: 
+--
+
+ALTER TABLE ONLY queue
+    ADD CONSTRAINT queue_pkey1 PRIMARY KEY (queueid);
+
+
+--
+-- TOC entry 1920 (class 1259 OID 16444)
+-- Dependencies: 161 1935
+-- Name: messageid_idx; Type: INDEX; Schema: public; Owner: tribhu; Tablespace: 
+--
+
+CREATE UNIQUE INDEX messageid_idx ON messages USING btree (messageid);
+
+
+--
+-- TOC entry 1921 (class 1259 OID 16447)
+-- Dependencies: 161 1935
+-- Name: priority; Type: INDEX; Schema: public; Owner: tribhu; Tablespace: 
+--
+
+CREATE INDEX priority ON messages USING btree (priority);
+
+
+--
+-- TOC entry 1922 (class 1259 OID 16445)
+-- Dependencies: 161 1935
+-- Name: queueid_idx; Type: INDEX; Schema: public; Owner: tribhu; Tablespace: 
+--
+
+CREATE INDEX queueid_idx ON messages USING btree (queueid);
+
+
+--
+-- TOC entry 1923 (class 1259 OID 16446)
+-- Dependencies: 161 1935
+-- Name: receiverid_idx; Type: INDEX; Schema: public; Owner: tribhu; Tablespace: 
+--
+
+CREATE INDEX receiverid_idx ON messages USING btree (receiverid);
+
+
+--
+-- TOC entry 1924 (class 1259 OID 16443)
+-- Dependencies: 161 1935
+-- Name: senderid_idx; Type: INDEX; Schema: public; Owner: tribhu; Tablespace: 
+--
+
+CREATE INDEX senderid_idx ON messages USING btree (senderid);
+
+
+--
+-- TOC entry 1925 (class 1259 OID 16442)
+-- Dependencies: 161 1935
+-- Name: timeofarrial_idx; Type: INDEX; Schema: public; Owner: tribhu; Tablespace: 
+--
+
+CREATE INDEX timeofarrial_idx ON messages USING btree (timeofarrival);
+
+
+--
+-- TOC entry 1940 (class 0 OID 0)
+-- Dependencies: 5
+-- Name: public; Type: ACL; Schema: -; Owner: postgres
+--
+
+REVOKE ALL ON SCHEMA public FROM PUBLIC;
+REVOKE ALL ON SCHEMA public FROM postgres;
+GRANT ALL ON SCHEMA public TO postgres;
+GRANT ALL ON SCHEMA public TO PUBLIC;
+
+
+-- Completed on 2013-10-11 19:21:10 CEST
+
+--
+-- PostgreSQL database dump complete
+--
+

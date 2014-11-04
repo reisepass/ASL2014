@@ -1,0 +1,64 @@
+package junit.tests.MessageFocusedAPI;
+
+import java.io.IOException;
+import java.net.UnknownHostException;
+import java.util.Random;
+
+import junit.framework.TestCase;
+
+import org.junit.Test;
+
+import edu.ethz.asl.user04.clientAPI.MessageAPI;
+import edu.ethz.asl.user04.shared.entity.Message;
+import edu.ethz.user04.shared.requests.messagerequests.WriteMessageRequest;
+import edu.ethz.user04.shared.requests.queuerequests.ReadPrivateMessageRequest;
+import edu.ethz.user04.shared.requests.queuerequests.ReadQueueRequest;
+/**
+ * Requires Server to be on.   
+ * Sends one random message to queue 1 and then retrieves it. Only works if no other threads are writing to queue1 at the
+ * same time 
+ */
+
+
+
+
+public class WriteOneReadItBack extends TestCase {
+
+	
+	@Test
+	public void test() {
+		Random rand = new Random();
+		String message = "Random MEssage" + Math.random();
+		MessageAPI capi=null;
+		try {
+			capi = new MessageAPI();
+		} catch (UnknownHostException e) {
+			
+			e.printStackTrace();
+			fail();
+			return;
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+			fail();
+			return;
+		}
+		int sender= rand.nextInt();
+		Message m = new Message(sender, 1, message,-1);
+		boolean success= capi.sendMessage(new WriteMessageRequest(m));
+		assertTrue(success);
+		
+			ReadPrivateMessageRequest rqr = new ReadPrivateMessageRequest(sender,1,  false, false );
+			Message inm = capi.readOnePrivateMessage( rqr);
+			assertNotNull(inm);
+		
+			
+			assertEquals(inm.getPayLoad(), message);
+		
+				
+	}
+	
+	
+	
+
+}

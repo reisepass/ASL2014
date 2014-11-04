@@ -1,0 +1,75 @@
+package edu.ethz.asl.user04.messagebroker;
+
+import java.io.IOException;
+import java.io.ObjectOutputStream;
+import java.net.Socket;
+import java.util.ArrayList;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+
+import edu.ethz.asl.user04.dbutils.DBManager;
+import edu.ethz.asl.user04.shared.entity.Message;
+
+public class MessageBrokerService {
+
+	private static final int HANDLERS = 15;
+	private static final int CONNECTIONLIMIT =25;//100 is the postgres internal limit and it needs some for itself
+	private static final int SERVER_PORT = 5009;
+	
+	private ExecutorService pool;
+	private DBManager       dbPool;
+	
+	public MessageBrokerService() {
+		ListenerService listener;
+		try {
+			pool = Executors.newFixedThreadPool(HANDLERS);
+			dbPool= new DBManager("myuser2", "127.0.0.1", "5432", "mydb1", "spartan",CONNECTIONLIMIT);
+			listener = new ListenerService(SERVER_PORT, pool,dbPool);
+			/**
+			 * TODO
+			 * Currently instantiate with a single Listener which accepts connections.
+			 * Try extending to invoke multiple listeners using same ThreadPool.
+			 */
+	        pool.submit(listener);
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+	}
+	
+	public void shutdown() {
+		System.out.println("Shutting down");
+		pool.shutdown();
+		System.out.println("Shutdown complete");
+	}
+	
+	public static void main(String[] args) throws IOException {
+
+		MessageBrokerService mbs = new MessageBrokerService();
+		Socket socket = null;
+		String[] messages = {"aaa!", "bbb!", "ccc!", "ddd!"};
+		
+		ArrayList<Message> messageList = new ArrayList<Message>();
+		
+		for( int i =1000; i<=10000;i++)
+			messageList.add(new Message(i, 1, "aaa"+i));
+		
+		// Send a message
+		try {
+			for (Message message : messageList) {
+				socket = new Socket("127.0.0.1", 5009);
+				
+				ObjectOutputStream oo = new ObjectOutputStream(socket.getOutputStream());
+				
+				oo.writeObject(message);
+				oo.close();
+				socket.close();
+			}
+		} catch (IOException e) {
+			e.printStackTrace();
+		} finally {
+			socket.close();
+			mbs.shutdown();
+		}
+	}
+
+}

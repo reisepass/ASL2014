@@ -1,0 +1,6 @@
+db_url=localhost
+db_name=mydb1
+db_port=5009
+username=myuser2
+password=spartan
+connection_limit=25

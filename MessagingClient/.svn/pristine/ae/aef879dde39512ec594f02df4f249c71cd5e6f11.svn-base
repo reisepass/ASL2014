@@ -1,0 +1,162 @@
+package edu.ethz.asl.user04.OTwantsProcessesSoHereYouGoOOOO;
+
+import java.io.FileInputStream;
+import java.io.IOException;
+import java.io.Serializable;
+import java.net.UnknownHostException;
+import java.util.ArrayList;
+import java.util.Properties;
+import java.util.logging.Level;
+import java.util.logging.Logger;
+
+import edu.ethz.asl.user04.clientAPI.MessageAPI;
+import edu.ethz.asl.user04.shared.entity.Message;
+import edu.ethz.asl.user04.shared.logging.MessagingSystemLogger;
+import edu.ethz.asl.user04.trace.sendMessageExperiment;
+import edu.ethz.user04.shared.requests.messagerequests.WriteMessageRequest;
+
+/**
+ * Command Line Arguments needed:  --clientID (int)  --experLength (long)  --mesLength (int)
+ * @author mort
+ *
+ */
+public class ProcSendMessage implements Serializable {
+
+	public final static Logger LOGGER = MessagingSystemLogger
+			.getLoggerForClass(sendMessageExperiment.class.getName());
+	/**
+	 * 
+	 */
+	private static final long serialVersionUID = -3865861447843334409L;
+	int clientID;
+	String message;
+	MessageAPI capi;
+	int mesLength;
+//	int queueID;
+	long experimentDur;
+	Properties cProp;
+	long expStartTime;
+	int numberQueues;
+	int numberRecievers;
+	int startIndexReciever;
+	
+	
+	private void init(){
+		StringBuilder sb = new StringBuilder();
+		for(int i=0; i<mesLength; i++) {
+			sb.append(new Double(Math.random() * 100).intValue() % 10);
+		}
+		message = sb.toString();
+		expStartTime = System.currentTimeMillis();
+		numberQueues=Integer.parseInt(cProp.getProperty("num_queues"));
+		int peekNum = Integer.parseInt(cProp.getProperty("num_peekclients"));
+		int pullNum = Integer.parseInt(cProp.getProperty("num_pullclients"));
+		numberRecievers=peekNum+pullNum;
+		startIndexReciever=Integer.parseInt(cProp.getProperty("start_idx_readers"));
+	}
+	
+
+	public ProcSendMessage(int clientID, MessageAPI capi, int mesLength,
+			long experimentDur, Properties cProp) {
+		super();
+		this.clientID = clientID;
+		this.capi = capi;
+		this.mesLength = mesLength;
+		this.experimentDur = experimentDur;
+		this.cProp = cProp;
+		
+		init();
+	}
+
+
+	public void run(){
+	
+		ArrayList<WriteMessageRequest> msgList = new ArrayList<WriteMessageRequest>();
+		for( int i=1;i<=numberQueues;i++){
+			if(startIndexReciever==-1)
+				msgList.add(new WriteMessageRequest(new Message(clientID,i,message,startIndexReciever)));
+			else{
+				for( int j=startIndexReciever;j<startIndexReciever+numberRecievers;j++){
+					msgList.add(new WriteMessageRequest(new Message(clientID,i,message,j)));
+				}
+			}
+		}
+		
+		
+		
+		
+		
+				int rcound=0;
+	
+				while ((expStartTime+experimentDur)>System.currentTimeMillis()) {
+					
+		
+					 
+				
+
+					LOGGER.log(
+							Level.INFO,
+							String.format(
+									"[METRIC] type=request request_type=WriteMessageRequest request_id=%s tier=client tag=sending_request_from_client_to_api",
+									msgList.get(rcound%msgList.size()).getRequestUUID()));
+
+					boolean result = capi.sendMessage(msgList.get(rcound%msgList.size()));
+					
+
+					LOGGER.log(
+							Level.INFO,
+							String.format(
+									"[METRIC] type=response request_type=WriteMessageRequest request_id=%s tier=client result=%s tag=received_response_at_client_from_api",
+									msgList.get(rcound%msgList.size()).getRequestUUID(), (result ? "PASS"
+											: "FAIL")));
+
+					
+					
+					rcound++;
+					
+				}
+	
+
+	}
+	
+	public static void main(String[] args) throws UnknownHostException, IOException{
+		if(args==null||args.length<2)
+			System.exit(1);
+		else{
+			int ci=-1;
+			long exp=-1;
+			int q=-1;
+			int ml=-1;
+			for(int i=0;i<args.length-1;i++){
+				if(args[i].equals("--clientID"))
+					ci=Integer.parseInt(args[i+1]);
+				if(args[i].equals("--experLength"))
+					exp = Long.parseLong(args[i+1]);
+				if(args[i].equals("--QueueID")){
+					q=Integer.parseInt(args[i+1]);
+				}
+				if(args[i].equals("--mesLength"))
+					ml = Integer.parseInt(args[i+1]);
+
+			}
+			if(ci==-1||exp==-1||ml==-1){
+				System.err.println("&^33 Args Missing");
+				System.exit(1);
+			}
+			
+			Properties client_prop = new Properties();
+			client_prop.load(new FileInputStream("properties/client.properties"));
+			String brokerServiceURL = client_prop.getProperty("mw_url");
+			int brokerServicePort = Integer.parseInt(client_prop
+					.getProperty("mw_port"));
+
+			MessageAPI mapi = new MessageAPI(ci, brokerServiceURL,
+					brokerServicePort);
+			
+			
+			ProcSendMessage  start = new  ProcSendMessage(ci, mapi, ml, exp, client_prop);
+			start.run();
+		}
+	}
+	
+}

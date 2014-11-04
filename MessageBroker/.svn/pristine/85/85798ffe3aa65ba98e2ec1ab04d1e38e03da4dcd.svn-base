@@ -1,0 +1,74 @@
+package edu.ethz.asl.user04.messagebroker;
+
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
+import java.io.IOException;
+import java.io.ObjectOutputStream;
+import java.net.Socket;
+import java.util.ArrayList;
+import java.util.Properties;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+
+import edu.ethz.asl.user04.dbutils.DBManager;
+import edu.ethz.asl.user04.shared.entity.Message;
+import edu.ethz.asl.user04.shared.logging.MessagingSystemLogger;
+
+public class MessageBrokerService {
+
+	private static final int HANDLERS = 15;
+	private static final int CONNECTIONLIMIT =25;//100 is the postgres internal limit and it needs some for itself
+	private static final int SERVER_PORT = 5009;
+	
+	private ExecutorService pool;
+	private DBManager       dbPool;
+	
+	public MessageBrokerService() {
+		ListenerService listener;
+		try {
+			Properties db_prop = new Properties();
+			db_prop.load(new FileInputStream("properties/db.properties"));
+			
+			Properties server_prop = new Properties();
+			server_prop.load(new FileInputStream("properties/mbs.properties"));
+			
+			pool = Executors
+					.newFixedThreadPool(Integer.parseInt(server_prop
+							.getProperty("handlers",
+									(new Integer(HANDLERS)).toString())));
+			dbPool= new DBManager(db_prop.getProperty("username"),
+					db_prop.getProperty("db_url"),
+					db_prop.getProperty("db_port"),
+					db_prop.getProperty("db_name"),
+					db_prop.getProperty("password"),
+					Integer.parseInt(db_prop.getProperty("connection_limit"), CONNECTIONLIMIT));
+			
+			listener = new ListenerService(Integer.parseInt(server_prop
+					.getProperty("server_port",
+							(new Integer(SERVER_PORT)).toString())), pool,
+					dbPool);
+			/**
+			 * TODO
+			 * Currently instantiate with a single Listener which accepts connections.
+			 * Try extending to invoke multiple listeners using same ThreadPool.
+			 */
+	        pool.submit(listener);
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+	}
+	
+	public void shutdown() {
+		System.out.println("Shutting down");
+		pool.shutdown();
+		System.out.println("Shutdown complete");
+	}
+	
+	public static void main(String[] args) throws IOException {
+
+		// MessagingSystemLogger.setup();
+		MessageBrokerService mbs = new MessageBrokerService();
+	}
+
+}

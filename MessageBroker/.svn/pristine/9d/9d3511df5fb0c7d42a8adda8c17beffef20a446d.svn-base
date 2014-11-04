@@ -1,0 +1,90 @@
+package edu.ethz.asl.user04.messagebroker;
+
+import java.io.IOException;
+import java.io.ObjectInputStream;
+import java.net.Socket;
+import java.sql.Connection;
+import java.sql.SQLException;
+
+import edu.ethz.asl.user04.dbutils.DBManager;
+import edu.ethz.asl.user04.dbutils.SQLUtil;
+import edu.ethz.asl.user04.shared.entity.Message;
+import edu.ethz.user04.shared.requests.messagerequests.ReadMessageRequest;
+import edu.ethz.user04.shared.requests.messagerequests.WriteMessageRequest;
+
+public class MessageHandler implements Runnable {
+	
+	private final Socket socket;
+	DBManager dbC;
+	
+	public MessageHandler(Socket socket,DBManager dbPool) {
+		this.socket = socket;
+		this.dbC = dbPool;
+	}
+
+	@Override
+	public void run() {
+
+		ObjectInputStream oi;
+		try {
+			oi = new ObjectInputStream(socket.getInputStream());
+			Object messageObject = oi.readObject();
+			//System.out.println("Received message: "+ messageObject);
+			Connection conn = dbC.newClientConnection();
+			SQLUtil sqlutil = new SQLUtil(conn);
+			// TODO Process the message
+			// Things to do:
+			// 1. Enqueue the message
+			
+			String queryStr = "SELECT title FROM tablename1 WHERE code='"+1000+"';";
+			
+			if (messageObject instanceof WriteMessageRequest) {
+				WriteMessageRequest messageRequest = (WriteMessageRequest) messageObject;
+				Message message = messageRequest.message;
+				conn = dbC.newClientConnection();
+				sqlutil = new SQLUtil(conn);
+
+				queryStr = String
+						.format("INSERT INTO Messages(messageid, senderid, receiverid, queueid, context, timeofarrival, message) "
+								+ "values(%l, %d, %d, %d, %d, %s, %s)",
+								message.getMessageId(), message.getSenderId(),
+								message.getReceiverId(), 1,
+								message.getContext(), message.getTimestamp(),
+								message.getPayload());
+				System.out.println(queryStr);
+
+				try {
+					sqlutil.sendSQL(queryStr);
+				} catch (SQLException e) {
+					System.out
+							.println("Something went horribly wrong when trying to insert Message");
+					e.printStackTrace();
+				}
+			}
+			else if(messageObject instanceof Message){
+				Message m = (Message)messageObject;
+				
+				String query2 = "SELECT title FROM tablename1 WHERE code='"+m.senderId+"';";
+				try {
+					int err=sqlutil.sendSQL(query2);
+					System.out.println(" SQL resp:"+err);
+				} catch (SQLException e) {
+					System.out.println("Something went horribly wrong when trying to insert Message");
+					e.printStackTrace();
+				}
+			}
+			else {
+				System.out.println("Unable to detect instance of ObjectStream");
+			}
+			
+			oi.close();
+			
+		} catch (IOException e) {
+			e.printStackTrace();
+		} catch (ClassNotFoundException e) {
+			e.printStackTrace();
+		}
+		
+	}
+
+}

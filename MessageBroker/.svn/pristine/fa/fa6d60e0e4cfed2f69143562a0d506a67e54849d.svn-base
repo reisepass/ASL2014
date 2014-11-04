@@ -1,0 +1,6 @@
+db_url=ec2-54-200-220-100.us-west-2.compute.amazonaws.com
+db_name=ASL_1
+db_port=5432
+username=postgres
+password=postgres123
+connection_limit=25

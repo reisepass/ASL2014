@@ -1,0 +1,71 @@
+package junit.tests.MessageFocusedAPI;
+
+
+
+import java.io.IOException;
+import java.net.UnknownHostException;
+import java.util.Random;
+
+import junit.framework.TestCase;
+
+import org.junit.Test;
+
+import edu.ethz.asl.user04.clientAPI.MessageAPI;
+import edu.ethz.asl.user04.shared.entity.Message;
+import edu.ethz.user04.shared.requests.messagerequests.DeleteMessageRequest;
+import edu.ethz.user04.shared.requests.messagerequests.WriteMessageRequest;
+import edu.ethz.user04.shared.requests.queuerequests.ReadPrivateMessageRequest;
+
+public class TestWriteMessageThenDelete extends TestCase {
+	
+	@Test
+	public void test(){
+		Random rand = new Random();
+		int sender= rand.nextInt();
+		
+			String message = "Random MEssage" + Math.random();
+			MessageAPI capi=null;
+		
+			try {
+				capi = new MessageAPI(sender);
+			} catch (UnknownHostException e) {
+				
+				e.printStackTrace();
+				fail();
+				return;
+			} catch (IOException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+				fail();
+				return;
+			}
+
+		
+			capi.setCliendID( sender);
+
+			Message m = new Message(sender, 1, message,sender);
+			boolean success= capi.sendMessage(new WriteMessageRequest(m));
+			assertTrue(success);
+			try {
+				Thread.sleep(10);
+			} catch (InterruptedException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+			Message back = capi.readOnePrivateMessage(new ReadPrivateMessageRequest(sender, 1, false, true));
+			
+				assertNotNull(back);
+			long idToRemove = back.getMessageId();
+				
+				
+				assertEquals(back.getPayLoad(), message);
+				
+			boolean removedSuccess = capi.deleteMessage(new DeleteMessageRequest(idToRemove));	
+				assertTrue(removedSuccess);
+				
+			
+		
+		
+	}
+
+}

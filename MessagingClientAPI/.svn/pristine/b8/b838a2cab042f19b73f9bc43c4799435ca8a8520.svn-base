@@ -1,0 +1,48 @@
+package edu.ethz.asl.user04.clientAPI;
+
+import java.util.List;
+
+import edu.ethz.asl.user04.shared.entity.Message;
+import edu.ethz.user04.shared.requests.messagerequests.DeleteMessageRequest;
+import edu.ethz.user04.shared.requests.queuerequests.CreateQueueRequest;
+import edu.ethz.user04.shared.requests.queuerequests.DeleteQueueRequest;
+import edu.ethz.user04.shared.requests.queuerequests.ReadAllMessagesRequest;
+import edu.ethz.user04.shared.requests.queuerequests.ReadPrivateMessageRequest;
+import edu.ethz.user04.shared.requests.queuerequests.ReadQueueRequest;
+
+public interface ClientAPIInterface {
+	/**
+	 * Interface inspired from Amazon SQS
+	 */
+	
+	/**
+	 * 1. Registration of attributes 
+	 */
+	public void setCliendID(int clientId);
+	public void enableRequestResponseMode(int context);
+	public void disableRequestResponseMode();
+	
+	/**
+	 * 2. Message specific APIs
+	 */
+	public boolean sendMessage(Message msg);
+	public Message sendRequestResponseMessage(Message msg, long timeout); // For request-response ONLY
+	/**
+	 * 1. Get all accessible messages (Sender OR Broadcast)
+	 * 2. Client ID to be set by API and not here
+	 */
+	// public List<Message> readAllPrivateMessage(int receiverID, int queueID,boolean removeAfterPeek,boolean  orderByTime);
+	public List<Message> readAllPrivateMessage(ReadAllMessagesRequest readAllRequest);
+	public Message readOnePrivateMessage(ReadPrivateMessageRequest readMessageRequest);
+	public boolean deleteMessage(DeleteMessageRequest deleteMessageRequest);
+	
+	/**
+	 * 3. Queue specific APIs
+	 */
+	public boolean createQueue(CreateQueueRequest createQueueRequest);
+	public List<Integer> readQueue(ReadQueueRequest readQueueRequest);
+	public boolean deleteQueue(DeleteQueueRequest deleteQueueRequest);
+
+	
+	
+}

@@ -1,0 +1,21 @@
+package edu.ethz.user04.shared.requests.messagerequests;
+
+import java.io.Serializable;
+
+import edu.ethz.asl.user04.shared.entity.Message;
+
+public class WriteMessageRequest implements Serializable {
+	
+	
+	
+	/**
+	 * 
+	 */
+	private static final long serialVersionUID = 1L;
+	public Message message;
+
+	public WriteMessageRequest(Message message) {
+		this.message = message;
+	}
+
+}

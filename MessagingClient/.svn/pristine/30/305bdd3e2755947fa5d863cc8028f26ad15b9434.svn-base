@@ -1,0 +1,25 @@
+package junit.tests.MessageFocusedAPI;
+
+import java.util.Random;
+
+import junit.framework.TestCase;
+
+import org.junit.Test;
+
+
+
+public class ReadandWriteOnePrivateMessage extends TestCase {
+
+	@Test
+	public void test() {
+		Random rand = new Random();
+		int A = rand.nextInt();
+		int B = rand.nextInt();
+		String secret=("THIS IS A PRIVATE MESAGE"+rand.nextInt());
+		ClientSendOnePrivate sending = new ClientSendOnePrivate( A, B, 5, secret);
+		ClientReadOnePrivateMessage read = new ClientReadOnePrivateMessage(B, A, 5, secret );
+		assertTrue(sending.DOIT());
+		assertTrue(read.takeIt());// this makes the actual comparison 
+				
+	}
+}

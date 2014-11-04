@@ -1,0 +1,9 @@
+package edu.ethz.user04.shared.requests.queuerequests;
+
+import java.io.Serializable;
+
+public class CloseConnection implements Serializable {
+	public CloseConnection(){
+		
+	}
+}

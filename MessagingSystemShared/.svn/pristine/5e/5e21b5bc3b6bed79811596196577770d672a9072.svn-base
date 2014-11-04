@@ -1,0 +1,7 @@
+package edu.ethz.user04.shared.requests.messagerequests;
+
+public class DeleteMessageRequest {
+	
+	// ABCS
+
+}

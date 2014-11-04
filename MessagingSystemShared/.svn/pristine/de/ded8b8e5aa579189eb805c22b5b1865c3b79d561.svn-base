@@ -1,0 +1,23 @@
+package edu.ethz.user04.shared.requests.queuerequests;
+
+/**
+ * Get the first result off the top of the queue
+ * @author mort
+ *
+ */
+public class ReadQueueRequest {
+
+	public int queueId; 
+	public boolean orderByTime;// If tree results are ordered by. If false it uses the default priority
+	public boolean removeAfter;//
+	public ReadQueueRequest(int queueId, boolean orderByTime,
+			boolean removeAfter) {
+		super();
+		this.queueId = queueId;
+		this.orderByTime = orderByTime;
+		this.removeAfter = removeAfter;
+	}
+	
+
+	
+}

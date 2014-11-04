@@ -1,0 +1,101 @@
+package edu.ethz.asl.user04.client;
+
+import java.io.IOException;
+import java.net.UnknownHostException;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.logging.Logger;
+
+import edu.ethz.asl.user04.clientAPI.MessageAPI;
+import edu.ethz.asl.user04.messagebroker.MessageBrokerService;
+import edu.ethz.asl.user04.shared.entity.Message;
+import edu.ethz.user04.shared.requests.messagerequests.WriteMessageRequest;
+import edu.ethz.user04.shared.requests.queuerequests.CreateQueueRequest;
+import edu.ethz.user04.shared.requests.queuerequests.ReadAllMessagesRequest;
+
+/**
+ * 
+ * @author tribhu
+ *
+ */
+public class QueueTests {
+	
+	public final static Logger LOGGER = Logger.getLogger(QueueTests.class.getName());
+	
+	public static Integer getRandomInt(int max) {
+		Double rndDouble = Math.random() * max;
+		
+		return rndDouble.intValue();
+	}
+	
+	public static Integer getRandomInt() { return getRandomInt(100); }
+	
+	public static void main(String[] args) {
+		
+		try {
+			
+			MessageBrokerService mbs = new MessageBrokerService();
+			
+			Boolean flag;
+			WriteMessageRequest wmr;
+			
+			// As Client A
+			int clientA = 10;
+			int receiverID = 20; // Client B
+			int queueID = 30;
+			MessageAPI mapiA = new MessageAPI(clientA);
+
+			// 1. Create Queue
+			CreateQueueRequest cqr;
+			cqr = new CreateQueueRequest(queueID, clientA, "Fat boy - " + queueID);
+			// mapiA.createQueue(cqr);
+			
+			// mapiA.createQueue(new CreateQueueRequest(2, clientA, "Fat boy - " + 2));
+			// mapiA.createQueue(new CreateQueueRequest(4, clientA, "Fat boy - " + 4));
+
+			// 2. Send different types of message to the queue
+			// A. Send message to explicit receiver
+			wmr = new WriteMessageRequest(queueID, "TestA " + getRandomInt(), receiverID);
+			flag = mapiA.sendMessage(wmr);
+			LOGGER.info(String.format("[TEST] Test 2A : %s", flag));
+			
+			// B. Send message with no explicit receiver
+			wmr = new WriteMessageRequest(queueID, "TestB " + getRandomInt());
+			flag = mapiA.sendMessage(wmr);
+			LOGGER.info(String.format("[TEST] Test 2B : %s", flag));
+			
+			// C. Send message with some priority
+			wmr = new WriteMessageRequest(8, queueID, "TestC " + getRandomInt(), receiverID);
+			flag = mapiA.sendMessage(wmr);
+			LOGGER.info(String.format("[TEST] Test 2C : %s", flag));
+			
+			// D. Send message to multiple queues
+			ArrayList<Integer> queueList = new ArrayList<Integer>();
+			queueList.add(2);
+			queueList.add(4);
+			queueList.add(8);
+			queueList.add(16);
+			queueList.add(30);
+			// wmr = new WriteMessageRequest(queueList, "TestD " + getRandomInt(), receiverID);
+			// flag = mapiA.sendMessage(wmr);
+			// LOGGER.info(String.format("[TEST] Test 2D : %s", flag));
+			
+			
+			// As Client B
+			int clientB = 20;
+			MessageAPI mapiB = new MessageAPI(clientB);
+			
+			ReadAllMessagesRequest rmr = new ReadAllMessagesRequest(queueID, clientB, false, true, 0);
+			List<Message> al = mapiB.readMultipleMessages(rmr);
+			
+			for(Message m : al) {
+				LOGGER.info("[RESULT] " + m);
+			}
+			
+		} catch (UnknownHostException e) {
+			e.printStackTrace();
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+	}
+}

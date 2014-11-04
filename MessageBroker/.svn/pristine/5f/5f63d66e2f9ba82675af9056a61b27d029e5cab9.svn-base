@@ -1,0 +1,129 @@
+package edu.ethz.asl.user04.dbutils;
+
+import java.sql.Connection;
+import java.sql.SQLException;
+/**
+ * @Author: Amr
+ * this class populates the DB with some values
+ *
+ */
+public class PopulateDB {
+	
+	public static SQLUtil initializeConnection(){
+		DBManager  dbPool;
+		dbPool= new DBManager("postgres", "localhost", "5009",
+				"postgres", "123456", 25, true);
+		Connection conn = dbPool.newClientConnection();
+		SQLUtil sqlutil = new SQLUtil(conn, 50);
+		return sqlutil;
+	}
+	
+	public static void terminateConnection( SQLUtil sqlutil){
+		sqlutil.closeSQLconnection();
+	}
+	/*
+	 * empties all tables in the DB
+	 * 
+	 */
+	public static boolean emptyDB(){
+		SQLUtil sqlutil = initializeConnection(); 
+		boolean res = true;
+		long start = System.currentTimeMillis();
+		String cmd = "delete from messages;"
+				+ "delete from clients;"
+				+ "delete from queues;";
+		int dbResult = -1;
+		try{
+			dbResult = sqlutil.sendSQL(cmd);
+			
+		}
+		catch(SQLException e){
+			res = false;
+		}
+		if(dbResult!=1){
+			res = false;
+		}
+		
+		long finish = System.currentTimeMillis();
+		System.out.println("result: "+res);
+		System.out.println("time: "+(finish - start));
+		
+		terminateConnection(sqlutil);
+		return res;
+		
+	}
+	/*
+	 * populates the DB
+	 * insert 'messageNumber' messages where the receiver is "clientNumber"
+	 * into all queues in [0, queueNumber[
+	 * Sender is set by default to 1
+	 * 
+	 */
+	
+	public static boolean populate(int clientsNumber, int queuesNumber, int 
+				messagesForEachClientInAQueue){
+		SQLUtil sqlutil = initializeConnection(); 
+		boolean res = true;
+		long start = System.currentTimeMillis();
+		
+		String cmd =  "DROP FUNCTION IF EXISTS insertThree(integer, integer, integer);"+
+					  " CREATE FUNCTION insertThree(integer, integer, integer) RETURNS integer AS $$ "+
+					  " BEGIN " +
+					  
+						"FOR j in 1..$2 LOOP "+
+						"INSERT INTO queues (queueid, queuename, createdby) VALUES(j"+",'queueName'"+ ","+"1)"+";" +
+						"END LOOP;"+
+
+					  
+					  "FOR i in 1..$1 LOOP "+   // loop on clients  // recepients
+					  "FOR j in 1..$2 LOOP "+   // loop on queues   // loop on queues
+					  "FOR k in 1..$3 LOOP "+   // how many messages   
+					  " INSERT INTO messages (senderid,receiverid,queueid,context,priority,message) " +
+				   	  " VALUES (1"+","+"i"+","+"j"+","+4+","+5+",'"+"message"+"');" +
+					  "END LOOP;"+
+				   	  "END LOOP;"+
+					  "END LOOP;"+
+					  " RETURN 1 ;"+ 
+					  "END; $$" + 
+					  "LANGUAGE PLPGSQL; select insertThree("+clientsNumber+","+queuesNumber + "," +messagesForEachClientInAQueue+");";
+		
+		int dbResult = -1;
+			try{
+				dbResult = sqlutil.sendSQL(cmd);
+				
+			}
+			catch(SQLException e){
+				res = false;
+			}
+			if(dbResult!=1){
+				res = false;
+			}
+		//}
+		long finish = System.currentTimeMillis();
+		//System.out.println("result: "+res);
+		//System.out.println("time: "+(finish - start));
+		
+		terminateConnection(sqlutil);
+		return res;
+	}
+	
+	// populating the DB with 1,000,000 messages
+	// took 80485 ms = 1 minute 20 secs
+	public static void main(String[]args) throws SQLException{
+		emptyDB();
+		int clients, queues, messages;
+		if(args.length<3){
+			clients = 100;
+			queues = 100;
+			messages = 100;
+		}
+		else{
+			clients = Integer.parseInt(args[0]);
+			queues = Integer.parseInt(args[1]);
+			messages = Integer.parseInt(args[2]);
+		}
+		populate(clients,queues,messages);
+		
+	}
+
+}

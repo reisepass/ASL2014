@@ -1,0 +1,67 @@
+package messageAPIFocusedTests;
+/**
+ * @author Amr
+ * functionality: test the delete queue functionality by first creating 50 queues numbered from
+ * 0 -> 49
+ * deletes only first 20
+ * attempts  to delete the first 20 again
+ * and then attepmts to delete the non existing queues 0-19
+ * 
+ * Best is to delete queues from te DB first by writing 
+ * "delete from queues;" in the Database terminal
+ * so that exiting queues donot conflict with the test
+ * 
+ * DEPENDENCIES: Create Queue should be functioning correctly
+ */
+
+import edu.ethz.asl.user04.clientAPI.MessageAPI;
+import edu.ethz.asl.user04.messagebroker.MessageBrokerService;
+import edu.ethz.user04.shared.requests.queuerequests.CreateQueueRequest;
+import edu.ethz.user04.shared.requests.queuerequests.DeleteQueueRequest;
+
+
+
+public class testDeleteQueue {
+	
+	public static void main(String[]args){
+		test();
+	}
+	
+	public static boolean test(){
+		
+		MessageBrokerService service = new MessageBrokerService();
+		MessageAPI mapi = null;
+		try{
+			mapi = new MessageAPI();
+		}
+		catch(Exception e){
+			
+		}
+		boolean result = true;
+		
+		for(int i =0; i<50; i++){
+			CreateQueueRequest createQueue = new CreateQueueRequest(i, "queue "+i);
+			System.out.println("createdQueue: "+i);
+			result|=mapi.createQueue(createQueue);
+		}
+		for(int i = 0; i<20; i++){
+			DeleteQueueRequest deleteQueue = new DeleteQueueRequest(i);
+			mapi.deleteQueue(deleteQueue);
+			result |= mapi.deleteQueue(deleteQueue);
+			if(!result){
+				System.out.println("cannot delete queue: "+i);
+			}
+		}
+		for(int i =0; i<20; i++){
+			DeleteQueueRequest deleteQueue = new DeleteQueueRequest(i);
+			boolean intermediateResult = mapi.deleteQueue(deleteQueue);
+			result |= !intermediateResult;
+			if(intermediateResult){
+				System.out.println("falsely deleted non-existent queue: "+i);
+			}
+		}
+		System.out.println("done "+result);
+		return result;
+	}
+
+}

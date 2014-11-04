@@ -1,0 +1,104 @@
+package edu.ethz.asl.user04.trace;
+
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
+import java.io.IOException;
+import java.util.Properties;
+import java.util.logging.Level;
+import java.util.logging.Logger;
+
+import edu.ethz.asl.user04.clientAPI.MessageAPI;
+import edu.ethz.asl.user04.shared.entity.Message;
+import edu.ethz.asl.user04.shared.logging.MessagingSystemLogger;
+import edu.ethz.user04.shared.requests.messagerequests.WriteMessageRequest;
+import edu.ethz.user04.shared.requests.queuerequests.CreateQueueRequest;
+
+public class sendMessageExperiment {
+
+	public final static Logger LOGGER = MessagingSystemLogger
+			.getLoggerForClass(sendMessageExperiment.class.getName());
+
+	public static void createQueues(MessageAPI mapi) {
+
+		for (int i = 0; i < 50; i++) {
+			CreateQueueRequest createQueue = new CreateQueueRequest(i, "queue "
+					+ i);
+			mapi.createQueue(createQueue);
+		}
+
+	}
+
+	public static int sendMessages(MessageAPI mapi) {
+
+		long startTime = System.currentTimeMillis();
+		int messagesSent = 0;
+		int messagesInsertedToDb = 0;
+		
+		int messageLength = 2000;
+		StringBuilder sb = new StringBuilder();
+		for(int i=0; i<messageLength; i++) {
+			sb.append(new Double(Math.random() * 100).intValue() % 10);
+		}
+		String msgPayload = sb.toString();
+		
+		while (true) {
+			int whichQueue = messagesSent % 5;
+			Message msg = new Message(1, whichQueue, msgPayload);
+			WriteMessageRequest writeRequest = new WriteMessageRequest(msg);
+			messagesSent++;
+
+			LOGGER.log(
+					Level.INFO,
+					String.format(
+							"[METRIC] type=request request_type=WriteMessageRequest request_id=%s tier=client tag=sending_request_from_client_to_api",
+							writeRequest.getRequestUUID()));
+
+			boolean result = mapi.sendMessage(writeRequest);
+			if (result) {
+				messagesInsertedToDb++;
+			}
+
+			LOGGER.log(
+					Level.INFO,
+					String.format(
+							"[METRIC] type=response request_type=WriteMessageRequest request_id=%s tier=client result=%s tag=received_response_at_client_from_api",
+							writeRequest.getRequestUUID(), (result ? "PASS"
+									: "FAIL")));
+
+			long currentTime = System.currentTimeMillis();
+			long timeDifference = currentTime - startTime;
+
+			if (timeDifference >= 1000 * 60 * 15) // 15 minutes
+				break;
+		}
+		return messagesSent;
+
+	}
+
+	public static void startTest() throws FileNotFoundException, IOException {
+
+		Properties client_prop = new Properties();
+		client_prop.load(new FileInputStream("properties/client.properties"));
+
+		int clientID = 562;
+		String brokerServiceURL = client_prop.getProperty("mw_url");
+		int brokerServicePort = Integer.parseInt(client_prop
+				.getProperty("mw_port"));
+
+		MessageAPI mapi = new MessageAPI(clientID, brokerServiceURL,
+				brokerServicePort);
+
+		createQueues(mapi);
+
+		int messagesSent = sendMessages(mapi);
+		
+		LOGGER.info("[DEBUG] Sent: " + messagesSent);
+
+	}
+
+	public static void main(String[] args) throws FileNotFoundException,
+			IOException {
+		startTest();
+	}
+
+}

@@ -1,0 +1,38 @@
+package junit.tests.MessageFocusedAPI;
+
+import java.io.IOException;
+import java.net.UnknownHostException;
+
+import junit.framework.TestCase;
+
+import org.junit.Test;
+
+import edu.ethz.asl.user04.clientAPI.MessageAPI;
+
+public class CreateTestingTables extends TestCase {
+	
+	
+	@Test
+	public void test(){
+		MessageAPI capi=null;
+		try {
+			capi = new MessageAPI();
+		} catch (UnknownHostException e) {
+			e.printStackTrace();	
+			capi.closeConnection();
+			return ;
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+			capi.closeConnection();
+			return ;
+		}
+		
+		int clientID = 10666;
+		for( int i=10000 ; i<10010;i++){
+			 
+			assertTrue(capi.createQueue(i, clientID));
+		}
+		capi.closeConnection();
+	}
+}

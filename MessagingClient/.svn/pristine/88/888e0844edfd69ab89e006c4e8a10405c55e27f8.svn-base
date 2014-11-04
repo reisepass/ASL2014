@@ -1,0 +1,303 @@
+package edu.ethz.asl.user04.OTwantsProcessesSoHereYouGoOOOO;
+
+import java.io.BufferedWriter;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileWriter;
+import java.io.IOException;
+import java.net.UnknownHostException;
+import java.util.Properties;
+import java.util.logging.Level;
+import java.util.logging.Logger;
+
+import edu.ethz.asl.user04.clientAPI.MessageAPI;
+import edu.ethz.asl.user04.messagebroker.MessageBrokerService;
+import edu.ethz.asl.user04.shared.entity.Message;
+import edu.ethz.asl.user04.shared.logging.MessagingSystemLogger;
+import edu.ethz.user04.shared.requests.messagerequests.WriteMessageRequest;
+import edu.ethz.user04.shared.requests.queuerequests.CreateQueueRequest;
+import edu.ethz.user04.shared.requests.queuerequests.ReadPrivateMessageRequest;
+
+/*
+ * Modify SQLUtil
+ * 1) get one private message not broadcast
+ * 2) add getBroadCast Parameter to ReadPrivateMessageRequest
+ * 3) modified MessageAPI so that the ReadPrivateMessageRequest has the getBroadCast set to false
+ * in the sendRequestResponseMessage()
+ * 4) modified messageHandler to handle the case when the getBroadcast is false
+ * 5) modified some properties in the .ini file (_pool, _ pairs)
+
+ * 
+ */
+
+
+
+public class TraceRequestResponse_Pool {
+	
+	public final static Logger LOGGER = MessagingSystemLogger
+			.getLoggerForClass(ProcRequestResponseFinalJar.class.getName());
+	
+	int clientId;
+	int experimentLength;
+	int messageLength;
+	String message;
+	Properties client_properties;
+	MessageAPI mapi;
+	static BufferedWriter writer;
+	boolean isSender;
+	
+	public TraceRequestResponse_Pool (int clientId, int experimentLength, int  messageLength, Properties client_properties, MessageAPI mapi, boolean isSender){
+		this.clientId = clientId;
+		this.experimentLength = experimentLength;
+		this.messageLength = messageLength;
+		char[] messageText = new char[messageLength];
+		for(int i =0; i<messageText.length; i++){
+			messageText[i] = (char)((int)(Math.random()*26)+'a');
+		}
+		message = new String (messageText);
+		this.client_properties = client_properties;
+		this.mapi = mapi;
+		this.isSender = isSender;
+	}
+	
+	
+	public void runSender(){
+		LOGGER.info("[DEBUG] Starting Client " + clientId);
+		// queues start from [1, num_queues]
+		int num_queues = Integer.parseInt(client_properties.getProperty("num_queues"));
+		int num_senders = Integer.parseInt(client_properties.getProperty("num_request_response_pool")) /2;
+		int start_idx_request_response_pool = Integer.parseInt(client_properties.getProperty("start_idx_request_response_pool"));
+		int startIdx_receivers = start_idx_request_response_pool + num_senders;
+		// example
+		// stat idx is 3000, num is 100
+		// we have request response clients from [3000,3099]
+		// num_senders = 100/2
+		// startIdx_receivers = 3000+50
+		
+		long startTime = System.currentTimeMillis();
+		long endTime = startTime + experimentLength*1000 *60;
+		
+		while(System.currentTimeMillis()<endTime){
+			int queue = (int)(Math.random()*num_queues) +1;
+			int receiverId = (int)(Math.random() * num_senders) + startIdx_receivers;
+			// choose a random receiver random receiver
+			// that is equivalent to sending a broadcast message and having some receiver to handle it
+			// but waaay easier to implement
+			
+			
+			//int receiverId = -1;
+			// send a broadcast message
+			// num_senders is the same as the number of receivers
+			
+			//done by the setup jar
+			//>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+			//for(int i = 1; i<=num_queues; i++){
+			//	CreateQueueRequest create = new CreateQueueRequest(i,"queue: "+i);
+			//	mapi.createQueue(create);
+			//}
+			//>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+		
+			// // sender, queue, priority, payload, reveiverId, context
+			
+			Message requestMessage = new  Message(this.clientId, queue, 10, this.message,  receiverId, 100);
+			WriteMessageRequest writeReq2 = new WriteMessageRequest(requestMessage);
+			
+			
+			LOGGER.log(
+					Level.INFO,
+					String.format(
+							"[METRIC] type=request request_type=RequestResponseMessage request_id=%s tier=client tag=sending_request_from_client_to_api client_id=%d",
+							writeReq2.getRequestUUID(), clientId));
+			Message result = mapi.sendRequestResponseMessage(writeReq2, 1000);  // timeout is one second
+			
+			
+			///////// LOCAL HOST TESTINGG
+			try{
+				//writer.write("client "+clientId + " sent request to "+ receiverId+"\n");
+				//writer.write("result: "+result+"\n");
+			}
+			catch (Exception e){
+				
+			}
+			///////// LOCAL HOST TESTINGG
+			
+			
+			if(result!=null){
+				LOGGER.log(
+						Level.INFO,
+						String.format(
+								"[METRIC] type=response request_type=RequestResponseMessage request_id=%s tier=client result=PASS messageBack=%s tag=received_response_at_client_from_api client_id=%d",
+								writeReq2.getRequestUUID(), result.getPayload(), 
+								clientId));
+				//writer.write("client "+ clientId + " received response " + receiverId +" payloaaad: "+result.getPayload()+"\n");
+				//System.out.println("payloaaad: "+result.getPayload());
+			}
+			else{
+				LOGGER.log(
+						Level.INFO,
+						String.format(
+								"[METRIC] type=response request_type=RequestResponseMessage request_id=%s tier=client result=FAIL messageBack=NothingFoundORFail tag=received_response_at_client_from_api client_id=%d",
+								writeReq2.getRequestUUID(), clientId));
+
+			}
+		}
+		
+		
+		LOGGER.info("[DEBUG] Terminating Client " + clientId);
+	}
+	
+	
+	
+	public void runReceiver(){
+		LOGGER.info("[DEBUG] Starting Client " + clientId);
+		long start = System.currentTimeMillis();
+		long end = start+experimentLength * 1000 *60 + 10 ;
+		// receiver has to run some more time than the sender
+		
+		while(System.currentTimeMillis()<end){
+			// senderID, queueID, removeAfterPeek, orderByTime
+			ReadPrivateMessageRequest readRequest = new ReadPrivateMessageRequest(-1, -1, true, false);
+			// read message from any queue, from any sender, if its conetxt is not 0, reply to it
+			
+			LOGGER.log(
+					Level.INFO,
+					String.format(
+							"[METRIC] type=request request_type=ReadPrivateMessageRequest request_id=%s tier=client tag=sending_request_from_client_to_api client_id=%d",
+							readRequest.getRequestUUID(), clientId));
+			Message requestForResponse = mapi.readOnePrivateMessage(readRequest);
+			if(requestForResponse!=null){
+				
+				LOGGER.log(
+						Level.INFO,
+						String.format(
+								"[METRIC] type=response request_type=ReadPrivateMessageRequest request_id=%s tier=client result=PASS messageBack=%s tag=received_response_at_client_from_api client_id=%d",
+								readRequest.getRequestUUID(), requestForResponse.getPayload(),
+								clientId));
+				
+				int requestSenderId = requestForResponse.senderId;
+				int queueId = requestForResponse.getQueueIdList().get(0);
+				Message response = new Message(this.clientId, queueId , 10, message , requestSenderId , 100);
+				WriteMessageRequest responseRequest = new WriteMessageRequest(response);
+				mapi.sendMessage(responseRequest);
+			}
+			else{
+				LOGGER.log(
+						Level.INFO,
+						String.format(
+								"[METRIC] type=response request_type=ReadPrivateMessageRequest request_id=%s tier=client result=FAIL messageBack=NothingFoundORFail tag=received_response_at_client_from_api client_id=%d",
+								readRequest.getRequestUUID(), clientId));
+			}
+		}
+		LOGGER.info("[DEBUG] Terminating Client " + clientId);
+	}
+	
+	//example arguments
+	// --clientID 3000 --experlength 1 --meslength 10
+	// --clientID 3001 --experlength 1 --meslength 10
+	// --clientID 3002 --experlength 1 --meslength 10
+	// --clientID 3003 --experlength 1 --meslength 10
+	
+	
+	public static void main(String[]args){
+		
+		Properties client_prop = new Properties();
+		try {
+			client_prop.load(new FileInputStream("properties/client.properties"));
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		String brokerServiceURL = client_prop.getProperty("mw_url");
+		int brokerServicePort = Integer.parseInt(client_prop
+				.getProperty("mw_port"));
+		
+		
+		int clientId = -1;
+		int experimentLength = -1;
+		int messageLength = -1;
+		
+		for (int i = 0; i < args.length - 1; i++) {
+			if (args[i].equals("--clientID"))
+				clientId = Integer.parseInt(args[i + 1]);
+			if (args[i].equals("--experlength"))
+				experimentLength = Integer.parseInt(args[i + 1]);
+			if (args[i].equals("--meslength"))
+				messageLength = Integer.parseInt(args[i + 1]);
+
+		}
+			
+		
+		try {
+			MessageAPI mapi = new MessageAPI(clientId, brokerServiceURL,
+					brokerServicePort);
+			
+			int num_request_response_pool = Integer.parseInt(client_prop.getProperty("num_request_response_pool"));
+			int start_idx_request_response_pool = Integer.parseInt(client_prop.getProperty("start_idx_request_response_pool"));
+			int end_idx_request_response_pool = start_idx_request_response_pool + num_request_response_pool - 1;
+			// 0 - 99
+			// (0 +99)/2  = 44
+			// 0 - 44 senders
+			// 45 - 99 receivers
+			int lastSender = (start_idx_request_response_pool + end_idx_request_response_pool )/2;
+			//System.out.print("lastSender: "+lastSender);
+		
+			boolean isSender;
+			if(clientId<=lastSender){
+				isSender = true;
+			}
+			else {
+				isSender = false;
+			}
+			
+			TraceRequestResponse_Pool clientProcess = new TraceRequestResponse_Pool(clientId,experimentLength, messageLength, client_prop, mapi, isSender);
+			if(isSender){
+				
+
+				////////LOCAL HOST TESTINGGG
+				/*File file = new File("output-"+ clientId +".txt");
+					try{
+						writer = new BufferedWriter(new FileWriter(file));
+					}
+					catch (Exception e){
+					
+					}
+					*/
+				////////LOCAL HOST TESTINGGG
+				
+				
+				
+				
+					clientProcess.runSender();
+				
+					
+			////////LOCAL HOST TESTINGGG
+			//writer.close();
+			////////LOCAL HOST TESTINGGG
+				
+				
+				
+			}
+			else{
+				//System.out.println("receiver: "+ clientId);
+			
+				clientProcess.runReceiver();
+			}
+			
+			
+			
+			
+			
+		} catch (UnknownHostException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		
+		
+		
+		
+	}
+
+}

@@ -1,0 +1,5 @@
+package edu.ethz.user04.shared.requests.queuerequests;
+
+public class ReadQueueRequest {
+
+}

@@ -1,0 +1,25 @@
+package edu.ethz.user04.shared.requests.queuerequests;
+
+import java.io.Serializable;
+
+public class ReadAllPrivateMessagesRequest implements Serializable{
+	/**
+	 * 
+	 */
+	private static final long serialVersionUID = 1L;
+	public int senderID;
+	public int queueID;
+	public boolean removeAfterPeek;
+	public boolean orderByTime;
+	public int page; // the messages are returned a limited number at a time. So you have to keep requesting the next page until you get an empty page
+	public ReadAllPrivateMessagesRequest(int senderID, int queueID,
+			boolean removeAfterPeek, boolean orderByTime, int page) {
+		super();
+		this.senderID = senderID;
+		this.queueID = queueID;
+		this.removeAfterPeek = removeAfterPeek;
+		this.orderByTime = orderByTime;
+		this.page = page;
+	}
+	
+}

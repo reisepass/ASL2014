@@ -1,0 +1,262 @@
+package edu.ethz.asl.user04.dbutils;
+
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
+import java.io.IOException;
+import java.math.BigDecimal;
+import java.sql.Connection;
+import java.sql.SQLException;
+import java.util.Properties;
+/**
+ * @Author: Amr
+ * this class populates the DB with some values
+ *
+ */
+public class PopulateDB {
+	
+	static Properties client_prop;
+	
+	
+	
+	
+	public static SQLUtil initializeConnection(){
+		DBManager  dbPool;
+		//dbPool= new DBManager("ec2-user", "ec2-54-201-11-166.us-west-2.compute.amazonaws.com", "5432",
+		//		"ASL_1", "ec2-user", 25, true);
+		
+		//dbPool= new DBManager("macbook", "localhost", "5432",
+				//"macbook", "ec2-user", 25, true);
+		// client.propertiesFile
+		// db_url
+		// db_name
+		
+		String userName = client_prop.getProperty("db_username");
+		String url = client_prop.getProperty("db_url");
+		String port = client_prop.getProperty("db_port");
+		String dbName = client_prop.getProperty("db_name");
+		String password = client_prop.getProperty("db_password");
+		int maxConnections = Integer.parseInt(client_prop.getProperty("db_connection_limit"));
+		
+		//String user, String dbip, String dbPort,
+		//String dbName, String usrPass,int maxConenctions, boolean randomName) 
+		
+		 dbPool = new DBManager(userName, url, port, dbName, password,maxConnections,true);
+		
+		Connection conn = dbPool.newClientConnection();
+		SQLUtil sqlutil = new SQLUtil(conn, 50);
+		return sqlutil;
+	}
+	
+	public static void terminateConnection( SQLUtil sqlutil){
+		sqlutil.closeSQLconnection();
+	}
+	/*
+	 * empties all tables in the DB
+	 * 
+	 */
+	
+	/*public static BigDecimal getTime(){
+		SQLUtil sqlutil = initializeConnection(); 
+		BigDecimal res = null;
+		try{
+			res = sqlutil.getTime("SELECT extract(epoch FROM clock_timestamp());");
+		}
+		catch (Exception e){
+			
+		}
+		
+		return res;
+	}*/
+	public static boolean emptyDB(){
+		SQLUtil sqlutil = initializeConnection(); 
+		boolean res = true;
+		long start = System.currentTimeMillis();
+		String cmd = "delete from messages;"
+				+ "delete from clients;"
+				+ "delete from queues;";
+		int dbResult = -1;
+		try{
+			dbResult = sqlutil.sendSQL(cmd);
+			//dbResultTwo = sqlutil.respondSQL(cmd, requestedColumNames)
+			
+		}
+		catch(SQLException e){
+			res = false;
+		}
+		if(dbResult!=1){
+			res = false;
+		}
+		
+		long finish = System.currentTimeMillis();
+		System.out.println("result: "+res);
+		System.out.println("time: "+(finish - start));
+		
+		terminateConnection(sqlutil);
+		return res;
+		
+	}
+	/*
+	 * populates the DB
+	 * insert 'messageNumber' messages where the receiver is "clientNumber"
+	 * into all queues in [0, queueNumber[
+	 * Sender is set by default to 1
+	 * 
+	 */
+	
+	public static boolean populate(int clientsNumber, int queuesNumber, int 
+				messagesForEachClientInAQueue) throws FileNotFoundException, IOException{
+		
+		
+		SQLUtil sqlutil = initializeConnection(); 
+		boolean res = true;
+		long start = System.currentTimeMillis();
+		
+		// queue value are from 1... num_queues
+		int num_queues = Integer.parseInt( client_prop.getProperty("num_queues") );
+		
+		int num_peekclients = Integer.parseInt( client_prop.getProperty("num_readone_peek"));
+		int start_idx_peekclients = Integer.parseInt( client_prop.getProperty("start_idx_readone_peek"));
+		int end_idx_peekclients = start_idx_peekclients+ num_peekclients-1;
+		
+		
+		int num_pullclients = Integer.parseInt( client_prop.getProperty("num_readone_pop"));
+		int start_idx_pullclients = Integer.parseInt( client_prop.getProperty("start_idx_readone_pop"));
+		int end_idx_pullclients = start_idx_pullclients + num_pullclients -1;
+		
+		int num_sendingclients = Integer.parseInt( client_prop.getProperty("num_sender"));
+		int start_idx_sendingclients = Integer.parseInt( client_prop.getProperty("start_idx_sender"));
+		int end_idx_sendingclients = start_idx_sendingclients + num_sendingclients-1;
+		
+		int message_length = Integer.parseInt( client_prop.getProperty("meslength"));
+		int numofmessages_perreceiver = Integer.parseInt( client_prop.getProperty("numofmessages_perreceiver"));
+
+		char[] messageArray = new char[message_length];
+		for(int i =0; i<messageArray.length; i++){
+			messageArray[i] =(char)((int)(Math.random()*26) + (int)'a');
+		}
+		String message = new String(messageArray);
+		// each receiver shud have "numofmessages_perreceiver" messages for him in each queue
+		
+		// 1st param: num_queues
+		// 2nd param: start_idx_peekclients
+		// 3rd param: end_idx_peekclients
+		// 4th param: start_idx_pullclients
+		// 5th param: end_idx_pullclients
+		// 6th param: start_idx_sendingclients
+		// 7th param: end_idx_sendingclients
+		// 8th param: numofmessages_perreceiver
+		
+		
+		String cmd =  "DROP FUNCTION IF EXISTS insert(integer, integer, integer, integer, integer, integer, integer , integer);"+
+				  " CREATE FUNCTION insert(integer, integer, integer, integer, integer, integer, integer, integer ) RETURNS integer AS $$ "+
+				  " BEGIN " +
+					"FOR j in 1..$1 LOOP "+   // loop on the queues
+					"INSERT INTO queues (queueid, queuename, createdby) VALUES(j"+",'queueName'"+ ","+"1)"+";" +
+					"END LOOP;"+
+
+				  
+				  "FOR i in $2..$3 LOOP "+   // loop on peekClients  // recepients
+				  "FOR j in 1..$1 LOOP "+   // loop on queues   // loop on queues
+				  "FOR k in 1..$8 LOOP "+   // how many messages   
+				  " INSERT INTO messages (senderid,receiverid,queueid,context,priority,message) " +
+			   	  " VALUES (1"+","+"i"+","+"j"+","+4+","+5+",'"+message+"');" +
+				  "END LOOP;"+
+			   	  "END LOOP;"+
+				  "END LOOP;"+
+			   	  
+ 				  "FOR i in $4..$5 LOOP "+   // loop on pullClients  // recepients
+ 				  "FOR j in 1..$1 LOOP "+   // loop on queues   // loop on queues
+ 				  "FOR k in 1..$8 LOOP "+   // how many messages   
+ 				  " INSERT INTO messages (senderid,receiverid,queueid,context,priority,message) " +
+ 				  " VALUES (1"+","+"i"+","+"j"+","+4+","+5+",'"+message+"');" +
+ 				  "END LOOP;"+
+ 				  "END LOOP;"+
+ 				  "END LOOP;"+
+				  
+				  " RETURN 1 ;"+ 
+				  "END; $$" + 
+				  "LANGUAGE PLPGSQL; select insert("+num_queues+"," + start_idx_peekclients +", "+ end_idx_peekclients + "," +
+				  start_idx_pullclients +", "+  end_idx_pullclients + ", " +start_idx_sendingclients +" , " +
+				  end_idx_sendingclients+", "+numofmessages_perreceiver+");";
+		
+		/*String cmd =  "DROP FUNCTION IF EXISTS insert(integer, integer, integer);"+
+					  " CREATE FUNCTION insert(integer, integer, integer) RETURNS integer AS $$ "+
+					  " BEGIN " +
+						"FOR j in 1..$2 LOOP "+
+						"INSERT INTO queues (queueid, queuename, createdby) VALUES(j"+",'queueName'"+ ","+"1)"+";" +
+						"END LOOP;"+
+
+					  
+					  "FOR i in 1..$1 LOOP "+   // loop on clients  // recepients
+					  "FOR j in 1..$2 LOOP "+   // loop on queues   // loop on queues
+					  "FOR k in 1..$3 LOOP "+   // how many messages   
+					  " INSERT INTO messages (senderid,receiverid,queueid,context,priority,message) " +
+				   	  " VALUES (1"+","+"i"+","+"j"+","+4+","+5+",'"+"message"+"');" +
+					  "END LOOP;"+
+				   	  "END LOOP;"+
+					  "END LOOP;"+
+					  " RETURN 1 ;"+ 
+					  "END; $$" + 
+					  "LANGUAGE PLPGSQL; select insertThree("+clientsNumber+","+queuesNumber + "," +messagesForEachClientInAQueue+");";*/
+		
+		int dbResult = -1;
+			try{
+				dbResult = sqlutil.sendSQL(cmd);
+				
+			}
+			catch(SQLException e){
+				res = false;
+			}
+			if(dbResult!=1){
+				res = false;
+			}
+		//}
+		long finish = System.currentTimeMillis();
+		//System.out.println("result: "+res);
+		//System.out.println("time: "+(finish - start));
+		
+		terminateConnection(sqlutil);
+		return res;
+	}
+	
+	
+	// NOTES:
+	// populating the DB with 1,000,000 messages
+	// took 80485 ms = 1 minute 20 secs
+	
+	// takes as parameters from the client.properties file
+	// number of queues;
+	// baseIndex of messageWriters
+	// number of messageWriters
+	// baseIndex of message peekers
+	// number of message peekers
+	// baseIndex of messagePollers
+	// number of messagePollers
+	// message length
+	// number of messages per receiver (whether poller or peeker) per queue
+	
+	public static void main(String[]args) throws SQLException, FileNotFoundException, IOException{
+		
+		client_prop = new Properties();
+		client_prop.load(new FileInputStream("properties/client.properties"));
+		
+		
+		emptyDB();
+		
+		
+		int clients, queues, messages;
+		if(args.length<3){
+			clients = 3;
+			queues = 3;
+			messages = 3;
+		}
+		else{
+			clients = Integer.parseInt(args[0]);
+			queues = Integer.parseInt(args[1]);
+			messages = Integer.parseInt(args[2]);
+		}
+		populate(clients,queues,messages);
+		
+	}
+
+}

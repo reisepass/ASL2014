@@ -1,0 +1,56 @@
+package edu.ethz.user04.shared.requests.queuerequests;
+
+import java.io.Serializable;
+
+import edu.ethz.user04.shared.requests.messagerequests.ReadMessageRequest;
+
+/**
+ * Used to read at most 1 message from a particular sender
+ * This functionality covers 2 requirements:
+ * a. Receive at most 1 message from a particular client
+ * b. Receive message from another client in a Request-Response conversation
+ */
+public class ReadPrivateMessageRequest implements Serializable  {
+
+
+	private static final long serialVersionUID = 1L;
+	public int receiverID; // ID of the client who wants to read the message
+	public int senderID;   // ID of the client whose message is to be read
+	public int queueID;
+	
+	public boolean removeAfterPeek;
+	public boolean orderByTime;
+	private int context = 0; // Context = 0 is default for non-Request-Response type messages
+
+	public int getReceiverID() {
+		return receiverID;
+	}
+
+	public void setReceiverID(int receiverID) {
+		this.receiverID = receiverID;
+	}
+
+	public int getContext() {
+		return context;
+	}
+	
+	public void setContext(int context) {
+		this.context = context;
+	}
+	
+	public ReadPrivateMessageRequest(int senderID, int queueID,
+			boolean removeAfterPeek, boolean orderByTime) {
+		super();
+		this.senderID = senderID;
+		this.queueID = queueID;
+		this.removeAfterPeek = removeAfterPeek;
+		this.orderByTime = orderByTime;
+	}
+	
+	public ReadPrivateMessageRequest(int senderID, int queueID,
+			boolean removeAfterPeek, boolean orderByTime, int context) {
+		this(senderID, queueID, removeAfterPeek, orderByTime);
+		this.context = context;
+	}
+	
+}

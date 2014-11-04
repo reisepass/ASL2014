@@ -1,0 +1,39 @@
+package edu.ethz.user04.shared.requests.queuerequests;
+
+import java.io.Serializable;
+
+import edu.ethz.user04.shared.requests.messagerequests.ReadMessageRequest;
+
+public class ReadPrivateMessageRequest implements Serializable  {
+
+	/**
+	 * 
+	 */
+	private static final long serialVersionUID = 1L;
+	public int senderID;
+	public int queueID;
+	public boolean removeAfterPeek;
+	public boolean orderByTime;
+	private int context = 0; // Context = 0 is default for non-Request-Response type messages
+	
+	public ReadPrivateMessageRequest(int senderID, int queueID,
+			boolean removeAfterPeek, boolean orderByTime) {
+		super();
+		this.senderID = senderID;
+		this.queueID = queueID;
+		this.removeAfterPeek = removeAfterPeek;
+		this.orderByTime = orderByTime;
+	}
+	
+	public ReadPrivateMessageRequest(int senderID, int queueID,
+			boolean removeAfterPeek, boolean orderByTime, int context) {
+		this(senderID, queueID, removeAfterPeek, orderByTime);
+		this.context = context;
+	}
+
+	public int getContext() {
+		return context;
+	}
+	
+
+}

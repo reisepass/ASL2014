@@ -1,0 +1,23 @@
+package edu.ethz.asl.user04.client;
+
+import java.io.IOException;
+import java.net.UnknownHostException;
+
+import edu.ethz.asl.user04.clientAPI.ClientAPI;
+import edu.ethz.asl.user04.messagebroker.MessageBrokerService;
+import edu.ethz.asl.user04.shared.entity.Message;
+
+public class ClientA {
+
+	public static void main(String[] args) throws UnknownHostException,
+			IOException {
+		MessageBrokerService service = new MessageBrokerService();
+		for (int i = 0; i < 10; i++) {
+			ClientAPI c = new ClientAPI();
+			Message m = new Message(i, i, i + "");
+			c.sendMessage(m);
+		}
+		service.shutdown();
+	}
+
+}

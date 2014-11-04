@@ -1,0 +1,57 @@
+package edu.ethz.asl.user04.client;
+
+import java.text.SimpleDateFormat;
+import java.util.ArrayList;
+import java.util.Calendar;
+import java.util.LinkedList;
+import java.util.List;
+
+import edu.ethz.asl.user04.clientAPI.ClientAPI;
+import edu.ethz.asl.user04.shared.entity.Message;
+import edu.ethz.user04.shared.requests.queuerequests.ReadQueueRequest;
+
+public class SmallClient implements Runnable{
+	int clientid;
+	int numWrite;
+	int numRead;
+	ClientAPI api;
+	int qid;
+	
+	List<Message> history;
+	public SmallClient(int clientid, int qid,int numWrite, int numRead,ClientAPI api) {
+		super();
+		this.clientid = clientid;
+		this.numWrite = numWrite;
+		this.numRead = numRead;
+		this.api= api;
+		this.qid = qid;
+		this.history = new LinkedList<Message>();
+	}
+	@Override
+	
+	public void run() {
+		
+		ArrayList<Boolean> responses = new ArrayList<Boolean>();
+		for( int i=0;i<numWrite;i++){
+			Message msg = new Message(clientid, qid, "NOMessage"+i);
+			responses.add(api.sendMessage(msg));
+		}
+		for ( int i=0; i<numRead;i++){
+			ReadQueueRequest getQ= new ReadQueueRequest(qid,true,false);
+			Message respo=api.readFromQueue(getQ);
+			history.add(respo);
+		
+		}
+		Calendar cal = Calendar.getInstance();
+    	cal.getTime();
+    	SimpleDateFormat sdf = new SimpleDateFormat("HH:mm:ss");
+    	api.closeConnection();
+		System.out.println("<id: "+clientid+"> done at "+ sdf.format(cal.getTime())+" Returned :"+history.size()+" responses\n"+responses.toString()+"</id: "+clientid+"> " );
+
+		
+	}
+	
+	
+	
+	
+}

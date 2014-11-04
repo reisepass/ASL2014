@@ -1,0 +1,50 @@
+package junit.tests.MessageFocusedAPI;
+
+import java.io.IOException;
+import java.net.UnknownHostException;
+
+import edu.ethz.asl.user04.clientAPI.MessageAPI;
+import edu.ethz.asl.user04.shared.entity.Message;
+import edu.ethz.user04.shared.requests.queuerequests.ReadPrivateMessageRequest;
+
+public class ClientReadOnePrivateMessage extends ClientSendOnePrivate  {
+
+	
+	public ClientReadOnePrivateMessage(int myId, int HisId, int queueToBeUsed,String payload) {
+		super(myId, HisId, queueToBeUsed,payload);
+		// TODO Auto-generated constructor stub
+	}
+
+	public boolean takeIt() {
+		
+	
+		MessageAPI capi=null;
+		try {
+			capi = new MessageAPI();
+		} catch (UnknownHostException e) {
+			e.printStackTrace();	
+			capi.closeConnection();
+			return false;
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+			capi.closeConnection();
+			return false;
+		}
+		
+		ReadPrivateMessageRequest rpmr = new ReadPrivateMessageRequest(myClientID, queueToTalkOn,  true, true);
+		Message myMail=capi.readOnePrivateMessage( rpmr);
+		capi.closeConnection();
+		if(myMail==null)
+			return true;
+		else{
+			if(myMail.getPayload().equals(payload))
+				return true;
+			else
+				return false;
+			
+		}
+		
+	}
+
+}

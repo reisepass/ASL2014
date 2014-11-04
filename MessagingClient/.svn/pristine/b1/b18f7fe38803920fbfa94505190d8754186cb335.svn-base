@@ -1,0 +1,81 @@
+package edu.ethz.asl.user04.client;
+
+import java.io.IOException;
+import java.net.UnknownHostException;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.logging.Logger;
+
+import edu.ethz.asl.user04.clientAPI.MessageAPI;
+import edu.ethz.asl.user04.messagebroker.MessageBrokerService;
+import edu.ethz.asl.user04.shared.entity.Message;
+import edu.ethz.user04.shared.requests.messagerequests.WriteMessageRequest;
+import edu.ethz.user04.shared.requests.queuerequests.CreateQueueRequest;
+import edu.ethz.user04.shared.requests.queuerequests.ReadAllMessagesRequest;
+
+public class QueueTests {
+	
+	public final static Logger LOGGER = Logger.getLogger(QueueTests.class.getName());
+	
+	public static Integer getRandomInt(int max) {
+		Double rndDouble = Math.random() * max;
+		
+		return rndDouble.intValue();
+	}
+	
+	public static Integer getRandomInt() { return getRandomInt(100); }
+	
+	public static void main(String[] args) {
+		
+		try {
+			
+			MessageBrokerService mbs = new MessageBrokerService();
+			
+			// As Client A
+			int clientA = getRandomInt();
+			int receiverID = getRandomInt(); // Client B
+			int queueID = getRandomInt();
+			MessageAPI mapiA = new MessageAPI(clientA);
+
+			// 1. Create Queue
+			CreateQueueRequest cqr;
+			cqr = new CreateQueueRequest(getRandomInt(), clientA, "Fat boy");
+			mapiA.createQueue(cqr);
+
+			// 2. Send different types of message to the queue
+			// A. Send message to explicit receiver
+			mapiA.sendMessage(new WriteMessageRequest(queueID, "TestA " + getRandomInt(), receiverID));
+			
+			// B. Send message with no explicit receiver
+			mapiA.sendMessage(new WriteMessageRequest(queueID, "TestB " + getRandomInt()));
+			
+			// C. Send message with some priority
+			mapiA.sendMessage(new WriteMessageRequest(8, queueID, "TestC " + getRandomInt(), receiverID));
+			
+			// D. Send message to multiple queues
+			ArrayList<Integer> queueList = new ArrayList<Integer>();
+			queueList.add(2);
+			queueList.add(4);
+			queueList.add(8);
+			queueList.add(16);
+			mapiA.sendMessage(new WriteMessageRequest(queueList, "TestD " + getRandomInt(), receiverID));
+			
+			
+			// As Client B
+			int clientB = getRandomInt();
+			MessageAPI mapiB = new MessageAPI(clientB);
+			
+			ReadAllMessagesRequest rmr = new ReadAllMessagesRequest(queueID, clientB, false, true, 0);
+			List<Message> al = mapiB.readMultipleMessages(rmr);
+			
+			for(Message m : al) {
+				LOGGER.info("[RESULT] " + m);
+			}
+			
+		} catch (UnknownHostException e) {
+			e.printStackTrace();
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+	}
+}

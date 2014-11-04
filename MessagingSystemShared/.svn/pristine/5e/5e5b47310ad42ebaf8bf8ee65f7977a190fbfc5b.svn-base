@@ -1,0 +1,17 @@
+package edu.ethz.user04.shared.requests.queuerequests;
+
+import java.io.Serializable;
+
+public class DeleteQueueRequest implements Serializable {
+	/**
+	 * 
+	 */
+	/*
+	private static final long serialVersionUID = 1L;
+	int queueId;
+	public DeleteQueueRequest(int qId){
+		queueId = qId;
+	}
+	*/
+	
+}

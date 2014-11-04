@@ -1,0 +1,18 @@
+package edu.ethz.user04.shared.requests.queuerequests;
+
+import java.io.Serializable;
+
+public class CreateQueueRequest implements Serializable {
+	/**
+	 * 
+	 */
+	/*
+	private static final long serialVersionUID = 1L;
+	int queueId;
+	public CreateQueueRequest(int qId){
+		queueId = qId;
+	}
+	*/
+	
+
+}

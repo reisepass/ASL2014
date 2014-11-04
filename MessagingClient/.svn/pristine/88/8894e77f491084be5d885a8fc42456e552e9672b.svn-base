@@ -1,0 +1,59 @@
+package edu.ethz.asl.user04.StandardClients;
+
+import java.io.Serializable;
+
+import edu.ethz.asl.user04.clientAPI.MessageAPI;
+import edu.ethz.asl.user04.shared.entity.ConfigExperimentV2;
+import edu.ethz.asl.user04.shared.entity.Message;
+import edu.ethz.user04.shared.requests.queuerequests.ReadPrivateMessageRequest;
+
+public class StdReadMessage implements Runnable, Serializable {
+
+	int clientID;
+	MessageAPI capi;
+	ConfigExperimentV2 cfg;
+	int queueID;
+	boolean removeAfterPeak;
+	boolean sortByTime;
+	
+
+
+
+	public StdReadMessage(int clientID, MessageAPI capi,
+			ConfigExperimentV2 cfg, int queueID, boolean removeAfterPeak,
+			boolean sortByTime) {
+		super();
+		this.clientID = clientID;
+		this.capi = capi;
+		this.cfg = cfg;
+		this.queueID = queueID;
+		this.removeAfterPeak = removeAfterPeak;
+		this.sortByTime = sortByTime;
+	}
+
+
+
+
+	@Override
+	public void run() {
+		// TODO Auto-generated method stub
+		ReadPrivateMessageRequest rpmr = new ReadPrivateMessageRequest(clientID,queueID,removeAfterPeak,sortByTime);
+		while(cfg.experimentLength+cfg.experimentStartTime>System.currentTimeMillis()){
+		 Message back=capi.readOnePrivateMessage(rpmr);
+		 if(back==null){
+			 System.err.print("NORETURN ERROR");// Replace with logger;
+			 try {
+				Thread.sleep(200);
+			} catch (InterruptedException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+		 }
+			
+			
+		}
+	
+	
+	}
+
+}

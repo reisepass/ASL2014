@@ -1,0 +1,42 @@
+package junit.tests.MessageFocusedAPI;
+
+import java.io.IOException;
+import java.net.UnknownHostException;
+
+import junit.framework.TestCase;
+
+import org.junit.Test;
+
+import edu.ethz.asl.user04.clientAPI.MessageAPI;
+import edu.ethz.asl.user04.shared.entity.Message;
+import edu.ethz.user04.shared.requests.queuerequests.ReadPrivateMessageRequest;
+
+public class ReadTestMessageFromTestQueues extends TestCase {
+
+	@Test
+	public void test() {
+
+		String expected = "multiQueueTestMessage";
+		int myID = 10777;
+		MessageAPI capi = null;
+		try {
+			capi = new MessageAPI(myID);
+		} catch (UnknownHostException e) {
+			e.printStackTrace();
+			return;
+		} catch (IOException e) {
+			e.printStackTrace();
+			return;
+		}
+
+		for (int i = 10000; i < 10010; i++) {
+			Message ret = capi
+					.readOnePrivateMessage(new ReadPrivateMessageRequest(myID,
+							i, false, true));
+			assertNotNull(ret);
+			if (ret != null)
+				assertEquals(expected, ret.getPayload());
+		}
+
+	}
+}

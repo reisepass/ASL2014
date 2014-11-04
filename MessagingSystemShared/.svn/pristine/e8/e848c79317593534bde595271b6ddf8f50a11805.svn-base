@@ -1,0 +1,21 @@
+package edu.ethz.asl.user04.shared.entity;
+
+import java.io.Serializable;
+
+/**
+ * This class defines how experiments will work. 
+ * And will later be used in the logs to determin from which experiment This log comes from. 
+ * @author mort
+ *
+ */
+public class ExperimentConfiguration implements Serializable {
+ /*
+  * This class defins 
+  * 
+  * 
+  * 
+  * 
+  */
+	
+	
+}

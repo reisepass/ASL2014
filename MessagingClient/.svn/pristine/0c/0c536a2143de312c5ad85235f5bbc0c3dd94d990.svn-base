@@ -1,0 +1,52 @@
+package edu.ethz.asl.user04.client;
+
+import java.io.IOException;
+import java.net.UnknownHostException;
+import java.util.Random;
+
+import edu.ethz.asl.user04.clientAPI.ClientAPI;
+import edu.ethz.asl.user04.shared.entity.Message;
+import edu.ethz.user04.shared.requests.queuerequests.ReadPrivateMessageRequest;
+import edu.ethz.user04.shared.requests.queuerequests.ReadQueueRequest;
+
+public class ClientReadOnePrivateMessage extends ClientSendOnePrivate  {
+
+	
+	public ClientReadOnePrivateMessage(int myId, int HisId, int queueToBeUsed,String payload) {
+		super(myId, HisId, queueToBeUsed,payload);
+		// TODO Auto-generated constructor stub
+	}
+
+	public boolean takeIt() {
+		
+	
+		ClientAPI capi=null;
+		try {
+			capi = new ClientAPI();
+		} catch (UnknownHostException e) {
+			e.printStackTrace();	
+			capi.closeConnection();
+			return false;
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+			capi.closeConnection();
+			return false;
+		}
+		
+		ReadPrivateMessageRequest rpmr = new ReadPrivateMessageRequest(myClientID, queueToTalkOn,  true, true);
+		Message myMail=capi.readOnePrivateMessage( rpmr);
+		capi.closeConnection();
+		if(myMail==null)
+			return true;
+		else{
+			if(myMail.getPayload().equals(payload))
+				return true;
+			else
+				return false;
+			
+		}
+		
+	}
+
+}

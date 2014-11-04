@@ -1,0 +1,68 @@
+package edu.ethz.asl.user04.client;
+
+import java.io.IOException;
+import java.net.UnknownHostException;
+import java.util.List;
+
+import edu.ethz.asl.user04.clientAPI.ClientAPI;
+import edu.ethz.asl.user04.messagebroker.MessageBrokerService;
+import edu.ethz.asl.user04.shared.entity.Message;
+import edu.ethz.user04.shared.requests.queuerequests.CreateQueueRequest;
+import edu.ethz.user04.shared.requests.queuerequests.ReadAllMessagesRequest;
+
+public class ClientOT {
+	
+	public static void main(String[] args) {
+		MessageBrokerService service = new MessageBrokerService();
+		try {
+			ClientAPI capi = new ClientAPI();
+			capi.setCliendID(72);
+			
+			/*Message msg = new Message(2, 666, "This is a request by 1");
+			capi.sendMessage(msg);*/
+			
+			/*capi.enableRequestResponseMode(1);
+			
+			Message msg_rr = new Message(666, "This is a request by 43", 42);
+			Message reply = capi.sendRequestResponseMessage(msg_rr, 1000);
+			System.out.println("Reply: " + reply);*/
+			
+			// As Client A (=60)
+			capi.setCliendID(60);
+			capi.createQueue(new CreateQueueRequest(10, 60, "ANYNAME"));
+			
+			Message msg_broadcast = new Message(60, 10, "Broadcast from A");
+			msg_broadcast.setReceiverId(-1);
+			
+			Message msg_to_b = new Message(60, 10, "Message from A to B");
+			msg_to_b.setReceiverId(72);
+			
+			Message msg_to_c = new Message(60, 10, "Message from A to C");
+			msg_to_c.setReceiverId(80);
+			
+			capi.sendMessage(msg_broadcast);
+			capi.sendMessage(msg_to_b);
+			capi.sendMessage(msg_to_c);
+			
+			System.out.println("Sent 3 messages");
+			
+			// As Client B (=72)
+			
+			capi.setCliendID(72);
+			ReadAllMessagesRequest readAll = new ReadAllMessagesRequest(10, false, false, 0);
+			List<Message> msg_list = capi.readAllPrivateMessage(readAll);
+			
+			for(Message msg : msg_list) {
+				System.out.println(msg);
+			}
+			
+			
+		} catch (UnknownHostException e) {
+			e.printStackTrace();
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+	}
+	
+	
+}

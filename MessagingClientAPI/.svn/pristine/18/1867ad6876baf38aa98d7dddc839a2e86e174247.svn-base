@@ -1,0 +1,276 @@
+package edu.ethz.asl.user04.clientAPI;
+
+import java.io.IOException;
+import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
+import java.net.Socket;
+import java.net.UnknownHostException;
+import java.util.ArrayList;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.logging.Logger;
+import java.util.logging.Level;
+
+import edu.ethz.asl.user04.shared.entity.Message;
+import edu.ethz.asl.user04.shared.entity.RequestResponse;
+import edu.ethz.asl.user04.shared.logging.MessagingSystemLogger;
+import edu.ethz.user04.shared.requests.messagerequests.DeleteMessageRequest;
+import edu.ethz.user04.shared.requests.messagerequests.WriteMessageRequest;
+import edu.ethz.user04.shared.requests.queuerequests.CloseConnection;
+import edu.ethz.user04.shared.requests.queuerequests.CreateQueueRequest;
+import edu.ethz.user04.shared.requests.queuerequests.DeleteQueueRequest;
+import edu.ethz.user04.shared.requests.queuerequests.QueryForQueuesWithMessagesForMe;
+import edu.ethz.user04.shared.requests.queuerequests.ReadAllMessagesRequest;
+import edu.ethz.user04.shared.requests.queuerequests.ReadPrivateMessageRequest;
+import edu.ethz.user04.shared.requests.queuerequests.ReadQueueRequest;
+
+
+public class MessageAPI extends ClientAPI implements ClientAPIInterface {
+	
+	public final static Logger LOGGER = MessagingSystemLogger.getLoggerForClass(MessageAPI.class.getName());
+	
+	Socket socket;
+	ObjectOutputStream outputStream;
+	ObjectInputStream  intputStream;
+	int tooManyMessages=10000;
+	int clientId; 
+	int NUMBER_OF_RR_POLLS = 5; // Number of times to poll for Response in Req-Resp communication
+	boolean isRequestResponse = false; // Client is One-way by default
+	int context = 0; // Default context is 0 (= Broadcast messages)
+	public boolean debugModeOn=false;
+	private static final int DEFAULT_SERVER_PORT = 5009;
+	private static final String DEFAULT_SERVER_URL = "127.0.0.1";
+	
+	private static final boolean SENDCLOSE=true;
+	
+	String brokerServiceURL;
+	int port;
+	
+	public MessageAPI( String brokerServiceURL, int port) throws UnknownHostException, IOException{
+		this.brokerServiceURL=brokerServiceURL;
+		this.port=port;
+
+	}
+	
+	/**
+	 * Returns an instance of ClientAPI for client to perform functions
+	 * MessageBrokerService URL defaults to 127.0.0.1
+	 * MessageBrokerService Port defaults to 5009
+	 * @param clientID Client ID
+	 * @throws UnknownHostException
+	 * @throws IOException
+	 */
+	public MessageAPI(int clientID) throws UnknownHostException, IOException {
+		this(clientID, DEFAULT_SERVER_URL);
+	}
+	
+	/**
+	 * Returns an instance of ClientAPI for client to perform functions
+	 * MessageBrokerService Port defaults to 5009
+	 * @param clientID Client ID
+	 * @param brokerServiceURL URL/DNS for the MessageBrokerService. Default is 127.0.0.1
+	 * @throws UnknownHostException
+	 * @throws IOException
+	 */
+	public MessageAPI(int clientID, String brokerServiceURL) throws UnknownHostException, IOException {
+		this(clientID, brokerServiceURL, DEFAULT_SERVER_PORT);
+	}
+	
+	/**
+	 * Returns an instance of ClientAPI for client to perform functions
+	 * MessageBrokerService Port defaults to 5009
+	 * @param clientID Client ID
+	 * @param brokerServiceURL URL/DNS for the MessageBrokerService. Default is 127.0.0.1
+	 * @param port Post open at the Server. Default is 5009
+	 * @throws UnknownHostException
+	 * @throws IOException
+	 */
+	public MessageAPI(int clientID, String brokerServiceURL, int port) throws UnknownHostException, IOException {
+		this.clientId = clientID;
+		this.brokerServiceURL = brokerServiceURL;
+		this.port = port;
+		
+		LOGGER.info(String.format("[DEBUG] Client %d connecting to %s", clientID, brokerServiceURL));
+		
+		socket = new Socket(brokerServiceURL, 5009);
+		outputStream = new ObjectOutputStream(socket.getOutputStream());
+		intputStream = new ObjectInputStream( socket.getInputStream());
+	}
+	
+	@Deprecated
+	/**
+	 * DO NOT use this anymore. Make MessageAPI mandate ClientID to be passed.
+	 * @throws UnknownHostException
+	 * @throws IOException
+	 */
+	public MessageAPI() throws UnknownHostException, IOException{
+	this.brokerServiceURL="127.0.0.1";
+	this.port=5009;
+
+	}
+	
+	
+	private void initConnection(){//TODO force retry after certan sleep period
+		try {
+			socket = new Socket(brokerServiceURL, port);
+			outputStream = new ObjectOutputStream(socket.getOutputStream());
+			intputStream = new ObjectInputStream( socket.getInputStream()); //TODO why new object ??
+		} catch (UnknownHostException e) {
+			// TODO Auto-generated catch block
+			LOGGER.log(Level.SEVERE,"MessageAPI unable to connect to the Middleware",e);
+			e.printStackTrace();
+			
+		} catch (IOException e) {
+			LOGGER.log(Level.SEVERE,"MessageAPI unable to connect to the Middleware",e);
+
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		
+		
+	}
+	
+	@Override
+	public void setCliendID(int clientId) {
+		this.clientId = clientId;
+	}
+
+	@Override
+	public void enableRequestResponseMode(int context) {
+		this.isRequestResponse = true;
+		this.context = context;
+	}
+
+	@Override
+	public void disableRequestResponseMode() {
+		this.isRequestResponse = false;
+		this.context = 0;
+	}
+//No change here :D 
+	
+	@Override
+	public boolean sendMessage(WriteMessageRequest writeMessageRequest) {
+		initConnection();
+		
+		boolean returnValue = super.sendMessage(writeMessageRequest);
+		if(SENDCLOSE)
+		closeConnection();
+		return returnValue;
+		
+	}
+
+
+	@Override
+	public Message sendRequestResponseMessage(WriteMessageRequest writeMessageRequest, long timeout) {
+	
+		initConnection();
+		
+	Message back=	super.sendRequestResponseMessage(writeMessageRequest, timeout);
+	if(SENDCLOSE)	
+	closeConnection();
+		return back;
+	}
+
+
+
+	
+	@Override
+	public List<Message> readMultipleMessages(
+			ReadAllMessagesRequest readAllRequest) {
+	
+		initConnection();
+		List<Message> getBack = super.readMultipleMessages(readAllRequest);
+		if(SENDCLOSE)
+		closeConnection();
+		return getBack;
+	}
+	
+
+	
+	@Override
+	public Message readOnePrivateMessage(ReadPrivateMessageRequest readMessageRequest) {
+		 
+		initConnection();
+		Message back = super.readOnePrivateMessage(readMessageRequest);
+		if(SENDCLOSE)
+		closeConnection();
+		return back;
+	}
+	
+
+	public Message readFromQueue ( ReadQueueRequest rqr){
+
+		initConnection();
+	    Message back = super.readFromQueue(rqr);
+	    if(SENDCLOSE)
+	    closeConnection();
+		return back;
+		
+	}
+
+
+	@Override
+	public boolean deleteMessage(DeleteMessageRequest deleteMessageRequest) {
+		initConnection();
+		boolean back = super.deleteMessage(deleteMessageRequest);
+		if(SENDCLOSE)
+		closeConnection();
+		return back;
+	}
+	
+	
+
+	
+	@Override
+	public boolean createQueue(CreateQueueRequest createQueueRequest) {
+		initConnection();
+		boolean back= super.createQueue(createQueueRequest);
+		if(SENDCLOSE)
+		closeConnection();
+		return back;
+	}
+
+	
+
+	@Override
+	public boolean deleteQueue(DeleteQueueRequest deleteQueueRequest) {
+		initConnection();
+		boolean back=super.deleteQueue(deleteQueueRequest);
+		if(SENDCLOSE)
+		closeConnection();
+		return back;
+	}
+	
+	public ArrayList<Integer> getQueuesWithRelevantMessages(QueryForQueuesWithMessagesForMe queueRequest){
+		queueRequest.setReceiverId(clientId);
+		
+		initConnection();
+		ArrayList<Integer>  back=super.getQueuesWithRelevantMessages(queueRequest);
+		if(SENDCLOSE)
+		closeConnection();
+		return back;
+		
+		
+	}
+	
+	public boolean closeConnection(){
+		CloseConnection close = new CloseConnection();
+		try {
+			outputStream.writeObject(close);
+			outputStream.close();
+			intputStream.close();
+			socket.close();
+		} catch (IOException e) {
+			System.err.println(e.getMessage());
+			e.printStackTrace();
+		}
+		return false;
+	}
+
+	
+
+
+
+	
+
+}

@@ -1,0 +1,62 @@
+package junit.tests;
+
+import java.io.IOException;
+import java.net.UnknownHostException;
+import java.util.Random;
+
+import org.junit.Test;
+
+import junit.framework.TestCase;
+import edu.ethz.asl.user04.clientAPI.ClientAPI;
+import edu.ethz.asl.user04.shared.entity.Message;
+import edu.ethz.user04.shared.requests.queuerequests.ReadQueueRequest;
+import org.junit.Test;
+/**
+ * Requires Server to be on.   
+ * Sends one random message to queue 1 and then retrieves it. Only works if no other threads are writing to queue1 at the
+ * same time 
+ */
+
+
+
+
+public class WriteOneReadItBack extends TestCase {
+
+	
+	@Test
+	public void test() {
+		Random rand = new Random();
+		String message = "Random MEssage" + Math.random();
+		ClientAPI capi=null;
+		try {
+			capi = new ClientAPI();
+		} catch (UnknownHostException e) {
+			
+			e.printStackTrace();
+			fail();
+			return;
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+			fail();
+			return;
+		}
+		int sender= rand.nextInt();
+		Message m = new Message(sender, 1, message);
+		boolean success= capi.sendMessage(m);
+		assertTrue(success);
+		
+			ReadQueueRequest rqr = new ReadQueueRequest(1, true, false);
+			Message inm = capi.readFromQueue( rqr);
+			assertNotNull(inm);
+			
+			
+			assertEquals(inm.getPayLoad(), message);
+			capi.closeConnection();
+				
+	}
+	
+	
+	
+
+}

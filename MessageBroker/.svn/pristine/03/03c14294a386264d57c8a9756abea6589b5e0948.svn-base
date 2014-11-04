@@ -1,0 +1,195 @@
+package edu.ethz.asl.user04.messagebroker;
+
+import java.io.IOException;
+import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
+import java.net.Socket;
+import java.sql.Connection;
+import java.sql.SQLException;
+import java.util.ArrayList;
+
+import edu.ethz.asl.user04.dbutils.DBManager;
+import edu.ethz.asl.user04.dbutils.SQLUtil;
+import edu.ethz.asl.user04.shared.entity.Message;
+import edu.ethz.user04.shared.requests.messagerequests.DeleteMessageRequest;
+import edu.ethz.user04.shared.requests.messagerequests.WriteMessageRequest;
+import edu.ethz.user04.shared.requests.queuerequests.CloseConnection;
+import edu.ethz.user04.shared.requests.queuerequests.CreateQueueRequest;
+import edu.ethz.user04.shared.requests.queuerequests.DeleteQueueRequest;
+import edu.ethz.user04.shared.requests.queuerequests.ReadAllMessagesRequest;
+import edu.ethz.user04.shared.requests.queuerequests.ReadPrivateMessageRequest;
+import edu.ethz.user04.shared.requests.queuerequests.ReadQueueRequest;
+
+public class MessageHandler implements Runnable {
+	
+	private final Socket socket;
+	DBManager dbC;
+	Object messageObject;
+	ObjectInputStream oi;
+	
+	ObjectOutputStream oo; 
+	/**
+	 * messageObject needs to be one object from the queue
+	 * @param socket
+	 * @param dbPool
+	 */
+	public MessageHandler(Socket socket,DBManager dbPool) {
+		this.socket = socket;
+		this.dbC = dbPool;
+		 System.out.println("NewMessageHandler");
+		
+		
+	}
+	
+
+	@Override
+	public void run() {
+		try {
+			
+			System.err.println("workTime");
+			oi = new ObjectInputStream(socket.getInputStream());
+			oo= new ObjectOutputStream(socket.getOutputStream());
+			Connection conn = dbC.newClientConnection();
+			SQLUtil sqlutil = new SQLUtil(conn);
+			
+			while(true){
+			messageObject = oi.readObject();
+
+
+			// Things to do:
+			// 1. Enqueue the message
+			String queryStr ="";
+			
+			//TODO return the id of the message you jsut wrote back to client
+			if (messageObject instanceof WriteMessageRequest) {
+				WriteMessageRequest messageRequest = (WriteMessageRequest) messageObject;
+				Message message = messageRequest.message;
+				 ArrayList<Integer> result;
+				if(message.getQueueIdList().size()>1){
+					result = sqlutil.multiMessage(message.getPayload(), message.getSenderId(), message.getReceiverId(), message.getContext(), message.getPriority(), message.getQueueIdList());
+				}
+				else{
+					//TODO makesure outside this that queuelsit always has atleast one elment
+					sqlutil.addMessage(message.getPayload(), message.getSenderId(), message.getReceiverId(), message.getContext(), message.getPriority(),message.getQueueIdList().get(0));
+				}
+				try {
+					sqlutil.sendSQL(queryStr);
+				} catch (SQLException e) {
+					System.out
+							.println("Something went horribly wrong when trying to insert Message");
+					e.printStackTrace();
+				}
+			}
+			else if(messageObject instanceof DeleteMessageRequest){
+				DeleteMessageRequest dmsr = (DeleteMessageRequest)messageObject;
+				boolean responseVal=false;
+				try {
+					responseVal = sqlutil.deleteMessage(dmsr.messageid);
+				} catch (SQLException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				}
+				oo.writeBoolean(responseVal);
+				
+			}
+	
+			else if(messageObject instanceof CreateQueueRequest){
+				CreateQueueRequest createREQ = (CreateQueueRequest) messageObject;
+				boolean recVal = false;;
+				//int recVal  = -2;
+				try {
+					 recVal = sqlutil.CreateQueue(createREQ.queueid,createREQ.clientid, createREQ.queueName);
+				} catch (SQLException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				}
+				
+				oo.writeObject(new Boolean(recVal));
+				//oo.writeInt(recVal);
+				
+			}
+			else if(messageObject instanceof DeleteQueueRequest){
+				DeleteQueueRequest mesgq = (DeleteQueueRequest)messageObject;
+				boolean resp;
+				try{
+					resp=sqlutil.deleteQueue(mesgq.queueid);
+				}
+				catch(SQLException e){//TODO inform the client 
+					System.err.println(e.getMessage());
+					resp=false;
+				}
+				oo.writeObject(new Boolean(resp));
+				
+			}
+			else if(messageObject instanceof ReadQueueRequest){
+				ReadQueueRequest mesgq = (ReadQueueRequest)messageObject;
+				Message sendBack=null;
+				if(mesgq.orderByTime)
+				{
+					sendBack= sqlutil.getQueueClosestTime(mesgq.queueId,mesgq.removeAfter);
+				}
+				else{
+					sendBack = sqlutil.getQueuePriorityFirst(mesgq.queueId,mesgq.removeAfter);
+				}
+				oo.writeObject(sendBack);
+				
+				
+			}	
+			else if(messageObject instanceof CloseConnection){
+				oi.close();
+				oo.close();
+				socket.close();
+				break;
+				
+				
+			}
+			else if(messageObject instanceof ReadPrivateMessageRequest){
+				ReadPrivateMessageRequest mesgq = (ReadPrivateMessageRequest)messageObject;
+				Message sendBack;
+				
+				if (mesgq.getContext() == 0)
+					// FIXME OT - Why does this say sender and finally receives it for receiver?
+					sendBack= sqlutil.getPrivateMessage(mesgq.queueID,mesgq.removeAfterPeek,mesgq.orderByTime,mesgq.senderID, mesgq.getContext());
+				else
+					// OT - I added this to handle Request-Response message
+					sendBack= sqlutil.getPrivateMessageFromSender(mesgq.queueID,mesgq.removeAfterPeek,mesgq.orderByTime,mesgq.senderID, mesgq.getContext());
+				
+				oo.writeObject(sendBack);
+				
+				
+			}
+			else if(messageObject instanceof ReadAllMessagesRequest ){
+				ReadAllMessagesRequest param = (ReadAllMessagesRequest)messageObject;
+				ArrayList<Message> result=null; 
+				try {
+					result= sqlutil.getAllPrivateMessages(param.queueID,param.removeAfterPeek,param.orderByTime,param.receiverID,param.page);
+				} catch (SQLException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				}
+				oo.writeObject(result);
+			
+			}
+
+			else {
+				System.out.println("Unable to detect instance of ObjectStream");
+				oi.close();
+				oo.close();
+				socket.close();
+				break;
+			}
+			
+			//TODO REMOVE THIS. have the client remove close the conenctions
+			}
+			
+		} catch (IOException e) {
+			System.err.println("ERR186"+e.getMessage());
+			e.printStackTrace();
+		} catch (ClassNotFoundException e) {
+			System.err.println("ERR188"+e.getMessage());
+			e.printStackTrace();
+		}
+		
+	}
+
+}

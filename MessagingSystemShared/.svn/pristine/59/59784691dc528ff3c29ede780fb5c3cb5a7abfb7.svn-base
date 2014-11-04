@@ -1,0 +1,17 @@
+package edu.ethz.user04.shared.requests.messagerequests;
+
+import java.util.UUID;
+
+public class MessagingSystemRequest {
+	
+	private UUID requestUUID;
+	
+	public MessagingSystemRequest() {
+		this.requestUUID = UUID.randomUUID();
+	}
+
+	public UUID getRequestUUID() {
+		return requestUUID;
+	}
+	
+}

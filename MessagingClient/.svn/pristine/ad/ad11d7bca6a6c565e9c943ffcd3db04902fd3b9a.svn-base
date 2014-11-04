@@ -1,0 +1,92 @@
+package edu.ethz.asl.user04.experiments;
+
+import java.io.FileInputStream;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Properties;
+import java.util.logging.ConsoleHandler;
+import java.util.logging.FileHandler;
+import java.util.logging.LogManager;
+import java.util.logging.Logger;
+
+import edu.ethz.asl.user04.clientAPI.ClientAPI;
+import edu.ethz.asl.user04.clientAPI.MessageAPI;
+import edu.ethz.asl.user04.messagebroker.MessageBrokerService;
+import edu.ethz.asl.user04.shared.entity.Message;
+import edu.ethz.asl.user04.shared.logging.LogFormatter;
+import edu.ethz.asl.user04.shared.logging.MessagingSystemLogger;
+import edu.ethz.user04.shared.requests.messagerequests.WriteMessageRequest;
+import edu.ethz.user04.shared.requests.queuerequests.CreateQueueRequest;
+
+public class ResponseTimeA {
+	
+	public final static Logger LOGGER = MessagingSystemLogger.getLoggerForClass(ResponseTimeA.class.getName());
+
+	public static void main(String[] args) {
+		
+		try {
+						
+			MessageBrokerService mbs = new MessageBrokerService();
+			
+			Properties prop = new Properties();
+			prop.load(new FileInputStream("properties/client.properties"));
+			
+			MessageAPI capi_a = new MessageAPI(990, prop.getProperty("broker_url"));
+			
+			LOGGER.info("[CREATEQUEUE] START - " + System.currentTimeMillis());
+			boolean success = capi_a.createQueue(new CreateQueueRequest(6, 990, "Queue5"));
+			if (success)
+				LOGGER.info("[CREATEQUEUE PASS] END - " + System.currentTimeMillis());
+			else
+				LOGGER.warning("[CREATEQUEUE FAIL] END - " + System.currentTimeMillis());
+			
+			Message msg = new Message(1234, 6, "TestMessage");
+			
+			LOGGER.info("[RESPONSETIME] START - " + System.currentTimeMillis());
+			capi_a.sendMessage(new WriteMessageRequest(msg));
+			LOGGER.info("[RESPONSETIME] END - " + System.currentTimeMillis());
+			
+			ArrayList<Long> arl = new ArrayList<Long>();
+			
+			for(int i=0; i < 5; i++) {
+				WriteMessageRequest wmr = new WriteMessageRequest(msg);
+				double ran = Math.random();
+				
+				long start = System.currentTimeMillis();
+				msg = new Message((int)(ran * 100), 6, "TestMessage" + (int)(ran * 100000));
+				boolean status = capi_a.sendMessage(wmr);
+				long end = System.currentTimeMillis();
+				
+				long diff = end - start;
+				
+				if(status)
+					LOGGER.info(String.format("RequestID - %s, Status = PASS", wmr.getRequestUUID()));
+				else
+					LOGGER.info(String.format("RequestID - %s, Status = FAIL", wmr.getRequestUUID()));
+				
+				LOGGER.info("[RESPONSETIME] " + i + " - " + diff);
+				arl.add(diff);
+			}
+			
+			long sum = 0;
+			long max = 0;
+			long min = Long.MAX_VALUE;
+			for(int i = 0; i < arl.size(); i++) {
+				sum += arl.get(i);
+				if (arl.get(i) > max)
+					max = arl.get(i);
+				if(arl.get(i) < min)
+					min = arl.get(i);
+			}
+			
+			LOGGER.info("[AVGRESPONSETIME] - " + sum/arl.size() );
+			LOGGER.info("[MAXRESPONSETIME] - " + max );
+			LOGGER.info("[MINRESPONSETIME] - " + min );
+			
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+		
+	}
+
+}

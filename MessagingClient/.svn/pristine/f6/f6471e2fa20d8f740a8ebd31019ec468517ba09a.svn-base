@@ -1,0 +1,51 @@
+package junit.tests.MessageFocusedAPI;
+
+import java.io.IOException;
+import java.net.UnknownHostException;
+import java.util.ArrayList;
+import java.util.Random;
+
+import junit.framework.TestCase;
+
+import org.junit.Test;
+
+import edu.ethz.asl.user04.clientAPI.MessageAPI;
+import edu.ethz.asl.user04.shared.entity.Message;
+import edu.ethz.user04.shared.requests.messagerequests.WriteMessageRequest;
+
+public class TestGetRelevantQueues extends TestCase {
+	@Test
+	public void test(){
+		Random ran = new Random();
+		int cleintId = ran.nextInt();
+		MessageAPI mapi = null;
+		
+		try {
+			mapi = new MessageAPI();
+			mapi.setCliendID(cleintId);
+		} catch (UnknownHostException e) {
+			// TODO Auto-generated catch block
+			fail();
+			e.printStackTrace();
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			fail();
+			e.printStackTrace();
+		}
+
+		
+		
+		
+		ArrayList<Integer> qList = new ArrayList<Integer>();
+		for( int i=10000 ; i<10010;i++){
+			qList.add(i);
+		
+			 
+		}
+		Message m1 = new Message(100667, qList, "NOTEXTNEEDED", cleintId, -1, 1);
+		assertTrue(mapi.sendMessage(new WriteMessageRequest(m1)));
+		
+		ArrayList<Integer> relevantToMe = mapi.getQueuesWithRelevantMessages(cleintId);
+		assertEquals(qList.toString(),relevantToMe.toString());		
+	}
+}

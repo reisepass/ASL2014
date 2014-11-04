@@ -1,0 +1,145 @@
+package GeneralizedClients;
+
+import java.util.ArrayList;
+import java.util.EmptyStackException;
+
+import edu.ethz.asl.user04.clientAPI.MessageAPI;
+import edu.ethz.asl.user04.shared.entity.Client;
+import edu.ethz.asl.user04.shared.entity.ExperimentConfiguration;
+import edu.ethz.asl.user04.shared.entity.Message;
+import edu.ethz.user04.shared.requests.messagerequests.WriteMessageRequest;
+
+public class ClientOnlySendOnlySafeQueue extends Client {
+
+	/**
+	 * 
+	 */
+	private static final long serialVersionUID = -6190402670876398516L;
+	private final static String name = "SendAMessageToRandomQueueFrom";
+	private ArrayList<Integer> safeQueueList;
+	private ArrayList<Integer> unSafeQueueList;
+	private long timeWait;
+	public MessageAPI middlewareInterface;
+	
+
+
+	private ExperimentConfiguration CFG;
+	
+
+	
+
+	public int numMessageAttemtps=0;
+	public int numMessageSuccess=0;
+	public ClientOnlySendOnlySafeQueue(int clientID,ArrayList<Integer> safeQueueList,
+			ArrayList<Integer> unSafeQueueList,long timeWait, MessageAPI middlewareInterface) {
+		super();
+		this.clientID=clientID;
+		this.safeQueueList = safeQueueList;
+		this.unSafeQueueList = unSafeQueueList;
+		this.timeWait=timeWait;
+		this.middlewareInterface=middlewareInterface;
+	}
+
+
+
+	public ClientOnlySendOnlySafeQueue(long timeWait,
+			ExperimentConfiguration cFG,MessageAPI middlewareInterface) {
+		super();
+		this.timeWait = timeWait;
+		CFG = cFG;
+
+		this.middlewareInterface =middlewareInterface;
+	}
+
+
+	@Override
+	public void clientAction() {
+		if(safeQueueList.size()==0){
+			 throw new EmptyStackException();//TODO put a more sensible exception here
+		}
+		else{
+			String text = "<Message>"+clientID+" Sent message "+numMessageAttemtps+"</Message>";
+			boolean win=middlewareInterface.sendMessage(new WriteMessageRequest(new Message(clientID,randomSafeQ(),text)));
+			numMessageAttemtps++;
+			if(win)
+				numMessageSuccess++;
+		}
+		
+	}
+
+	
+	public int clientID;
+	public ExperimentConfiguration getCFG() {
+		return CFG;
+	}
+
+
+
+	public void setCFG(ExperimentConfiguration cFG) {
+		CFG = cFG;
+	}
+	
+	public void setClientID(int id){
+		this.clientID=id;
+	}
+	@Override
+	public String getUniqueName() {
+		return name;
+	}
+
+	@Override
+	public void setWaitMilSecBetweenActions(long time) {
+		timeWait=time;
+	}
+
+	@Override
+	public long getWaitMilSecBetweenActions() {
+		
+		return timeWait;
+	}
+
+
+	@Override
+	public int getClientID() {
+		return clientID;
+	}
+
+
+	public ArrayList<Integer> getSafeQueueList() {
+		return safeQueueList;
+	}
+
+	public void setSafeQueueList(ArrayList<Integer> safeQueueList) {
+		this.safeQueueList = safeQueueList;
+	}
+
+	public ArrayList<Integer> getUnSafeQueueList() {
+		return unSafeQueueList;
+	}
+
+	public void setUnSafeQueueList(ArrayList<Integer> unSafeQueueList) {
+		this.unSafeQueueList = unSafeQueueList;
+	}
+
+
+	public MessageAPI getMiddlewareInterface() {
+		return middlewareInterface;
+	}
+
+
+
+	public void setMiddlewareInterface(MessageAPI middlewareInterface) {
+		this.middlewareInterface = middlewareInterface;
+	}
+	@Override
+	public Client clone() {
+		return new ClientOnlySendOnlySafeQueue( timeWait,
+				 CFG,   middlewareInterface);
+
+	}
+
+
+
+	
+
+}

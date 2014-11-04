@@ -1,0 +1,104 @@
+package edu.ethz.asl.user04.dbutils;
+
+import java.sql.Connection;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.Statement;
+import java.util.ArrayList;
+
+import edu.ethz.asl.user04.shared.entity.Message;
+
+public class SQLUtil {
+	protected Connection conn;
+	public SQLUtil(Connection inpC){
+		conn=inpC;
+	}
+	private Connection getDBConnection(){
+		return conn;
+	}
+	
+	
+	public int sendSQL(String inpCommand) throws SQLException{
+		int errorCode = 1;
+		Statement statmt=null;
+		Connection myconn = getDBConnection();
+		boolean er =false;
+		try{
+			statmt=myconn.createStatement();
+			er=statmt.execute(inpCommand);
+		}
+		catch(SQLException e){
+			System.out.println(e.getMessage());
+		}
+		finally{
+			if(statmt!=null)
+				statmt.close();
+			if(myconn!=null)
+				myconn.close();
+		}
+		return (er)?1:-1;
+	}
+	
+	public ArrayList<ArrayList<String>> respondSQL(String inpCommand, ArrayList<String> requestedColumNames) throws SQLException{
+		ArrayList<ArrayList<String>> responses = new ArrayList<ArrayList<String>>();
+		Statement statmt=null;
+		Connection myCon = getDBConnection();
+		boolean er =false;
+		try{
+			statmt=myCon.createStatement();
+			ResultSet rs=statmt.executeQuery(inpCommand);
+			
+			while (rs.next()) {
+				ArrayList<String> curStrings = new ArrayList<String>();
+				
+				curStrings.add(rs.getString(1));
+				responses.add(curStrings);
+ 
+			}
+ 
+			
+		}
+		catch(SQLException e){
+			System.out.println(e.getMessage());
+		}
+		finally{
+			if(statmt!=null)
+				statmt.close();
+			if(myCon!=null)
+				myCon.close();
+		}
+		return responses;
+	}
+	
+	
+
+	
+	
+	public int CreateClient(boolean clienttype){ //Returns client ID
+		return -2;
+	}
+	//returns queueID
+	public int CreateQueue(String name){
+		return -2; 
+	}
+	public boolean deleteQueue(String Name){
+		return false; 
+	}
+	public boolean deteltQueue(int qID){
+		return false; 
+	}
+	public ArrayList<Integer> listQueues(){
+		return null; 
+	}
+	public int allMessage( String MsgText, int Sender, int Receiver, int Context, int prirority){ // returns messageId
+		return -2; 
+	} 
+	public ArrayList<Message> getQueue(int QueueID){
+		return null; 
+	}
+	public ArrayList<Message> getQueue(String QueueID){
+		return null;
+	}
+	
+	
+}

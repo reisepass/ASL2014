@@ -1,0 +1,76 @@
+package junit.tests;
+import java.sql.Connection;
+import java.sql.SQLException;
+import java.util.Random;
+
+import org.postgresql.jdbc3.Jdbc3PoolingDataSource;
+
+import edu.ethz.asl.user04.dbutils.DBManager;
+import edu.ethz.asl.user04.dbutils.SQLUtil;
+
+
+public class Worker implements Runnable  {
+	
+	public int id=0;
+	public int readM=100;
+	DBManager dbPool;
+	public Worker(DBManager inPool ,int readM, int id){
+	
+		dbPool=inPool;
+		this.readM=readM;
+		this.id=id;
+	}
+
+	@Override
+	public void run() {
+		
+		System.out.println("Worker"+id+" started");
+		Connection conn=null;
+		int timesTried=1;
+		while( timesTried<15&&conn==null){
+			
+				timesTried++;
+				
+				
+					conn = dbPool.newClientConnection();
+					
+			if(conn==null){
+					System.out.println("Worker"+id+" Waiting");					
+					try {
+						Thread.sleep(100);
+					} catch (InterruptedException e) {
+						// TODO Auto-generated catch block
+						e.printStackTrace();
+					}
+			}
+		}	
+			
+		
+			
+		
+		
+		
+			if(conn!=null){
+				System.out.println("Worker"+id+" using SQL");
+				
+				SQLUtil sq = new SQLUtil(conn);
+				
+				
+				for(int i=0;i<readM;i++){
+					try {
+						sq.queueIdTaken(5);
+					} catch (SQLException e) {
+						// TODO Auto-generated catch block
+						e.printStackTrace();
+					}
+				}
+				sq.closeSQLconnection();
+			}
+		
+		
+			System.out.println("Worker"+id+" Finished");
+	}
+
+	
+	
+}

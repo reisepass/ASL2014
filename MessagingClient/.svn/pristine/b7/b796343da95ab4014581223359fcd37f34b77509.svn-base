@@ -1,0 +1,48 @@
+package junit.tests;
+
+import java.io.IOException;
+import java.net.UnknownHostException;
+import java.util.ArrayList;
+
+import junit.framework.TestCase;
+
+import org.junit.Test;
+
+import edu.ethz.asl.user04.clientAPI.ClientAPI;
+import edu.ethz.asl.user04.shared.entity.Message;
+
+public class SendMessageToAllTestQueues extends TestCase {
+	@Test
+	public void test(){
+		ClientAPI capi=null;
+		try {
+			
+			capi = new ClientAPI();
+			capi.debugModeOn=true;
+		} catch (UnknownHostException e) {
+			e.printStackTrace();	
+			capi.closeConnection();
+			return ;
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+			capi.closeConnection();
+			return ;
+		}
+		
+		String prefix = "multiQueueTestMessage";
+		int clientID = 10666;
+		ArrayList<Integer> qList = new ArrayList<Integer>();
+		for( int i=10000 ; i<10010;i++){
+			qList.add(i);
+		
+			 
+		}
+		Message m1 = new Message(100667, qList, prefix, 10777, -1, 1);
+
+		 assertTrue(capi.sendMessage(m1));
+		
+		capi.closeConnection();
+	}
+	
+}

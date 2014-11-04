@@ -1,0 +1,179 @@
+package edu.ethz.asl.user04.clientAPI;
+
+import java.io.IOException;
+import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
+import java.net.Socket;
+import java.net.UnknownHostException;
+import java.util.ArrayList;
+import java.util.List;
+
+import edu.ethz.asl.user04.shared.entity.Message;
+import edu.ethz.user04.shared.requests.messagerequests.DeleteMessageRequest;
+import edu.ethz.user04.shared.requests.messagerequests.WriteMessageRequest;
+import edu.ethz.user04.shared.requests.queuerequests.CloseConnection;
+import edu.ethz.user04.shared.requests.queuerequests.CreateQueueRequest;
+import edu.ethz.user04.shared.requests.queuerequests.DeleteQueueRequest;
+import edu.ethz.user04.shared.requests.queuerequests.ReadAllPrivateMessagesRequest;
+import edu.ethz.user04.shared.requests.queuerequests.ReadPrivateMessageRequest;
+import edu.ethz.user04.shared.requests.queuerequests.ReadQueueRequest;
+
+public class ClientAPI implements ClientAPIInterface {
+	Socket socket;
+	ObjectOutputStream outputStream;
+	ObjectInputStream  intputStream;
+	int tooManyMessages=10000;
+	public ClientAPI() throws UnknownHostException, IOException{
+		
+		
+		socket = new Socket("127.0.0.1", 5009);
+		
+		outputStream = new ObjectOutputStream(socket.getOutputStream());
+		intputStream = new ObjectInputStream( socket.getInputStream()); //TODO why new object ??
+
+	}
+	
+	@Override
+	public void setCliendID(int clientId) {
+		// TODO Auto-generated method stub
+
+	}
+
+	@Override
+	public boolean sendMessage(Message msg) {
+		
+		WriteMessageRequest writeRequest = new WriteMessageRequest(msg);
+		try{
+			outputStream.writeObject(writeRequest);
+			//objectStream.close();
+		}
+		catch (Exception e){
+			System.out.println("exception, msj not sent");
+			return false;
+		}
+		return true;
+		
+		/**
+		 * send it herre
+		 * 
+		 * 
+		 */
+	}
+
+	@Override
+	public List<Message> readAllPrivateMessage(int clientID, int queueID,boolean removeAfterPeek,boolean  orderByTime) {
+		List<Message> resultList = new ArrayList<Message>();
+		try {
+			int i=0;
+			while(true){
+				ReadAllPrivateMessagesRequest readAll = new ReadAllPrivateMessagesRequest(clientID, queueID, removeAfterPeek, orderByTime,i);
+				outputStream.writeObject(readAll);
+				try {
+					//TODO add check case of null and non list format 
+					Object obj =  intputStream.readObject();
+					if(obj==null){
+						System.err.println("<Error, readALLprivateMEssages returned a null");
+					}
+						
+					 List<Message> result =(List<Message>)obj;
+					if(result.size()==0)
+						return resultList;
+					resultList.addAll(result);
+					i++;
+					
+				} catch (ClassNotFoundException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				}
+			}
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		
+		return resultList;
+	}
+	@Override
+	public Message readOnePrivateMessage(ReadPrivateMessageRequest readMessageRequest) {
+		Message back = null;
+		try {
+			outputStream.writeObject(readMessageRequest);
+			 try {
+				back= (Message)intputStream.readObject();
+			} catch (ClassNotFoundException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		
+		return back;
+	}
+	
+	
+	
+	
+	
+	public Message readFromQueue ( ReadQueueRequest rqr){
+		Message back = null;
+		try {
+			outputStream.writeObject(rqr);
+			 try {
+				back= (Message) intputStream.readObject();
+			} catch (ClassNotFoundException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		
+		return back;
+		
+	}
+
+	@Override
+	public boolean deleteMessage(DeleteMessageRequest deleteMessageRequest) {
+		// TODO Auto-generated method stub
+		return false;
+	}
+	
+	@Override
+	public boolean createQueue(CreateQueueRequest createQueueRequest) {
+		// TODO Auto-generated method stub
+		return false;
+	}
+
+	@Override
+	public List<Integer> readQueue(ReadQueueRequest readQueueRequest) {
+		// TODO Auto-generated method stub
+		return null;
+	}
+
+	@Override
+	public boolean deleteQueue(DeleteQueueRequest deleteQueueRequest) {
+		// TODO Auto-generated method stub
+		return false;
+	}
+	
+	public boolean closeConnection(){
+		CloseConnection close = new CloseConnection();
+		try {
+			outputStream.writeObject(close);
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		return false;
+	}
+
+	
+
+
+
+	
+
+}

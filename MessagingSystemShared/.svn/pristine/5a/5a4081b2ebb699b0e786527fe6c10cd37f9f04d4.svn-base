@@ -1,0 +1,25 @@
+package edu.ethz.user04.shared.requests.queuerequests;
+
+import java.io.Serializable;
+
+/**
+ * Get the first result off the top of the queue. Does not check for ownership of message
+ * @author mort
+ *
+ */
+public class ReadQueueRequest implements Serializable{
+
+	public int queueId; 
+	public boolean orderByTime;// If tree results are ordered by. If false it uses the default priority
+	public boolean removeAfter;//
+	public ReadQueueRequest(int queueId, boolean orderByTime,
+			boolean removeAfter) {
+		super();
+		this.queueId = queueId;
+		this.orderByTime = orderByTime;
+		this.removeAfter = removeAfter;
+	}
+	
+
+	
+}

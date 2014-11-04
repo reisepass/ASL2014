@@ -1,0 +1,15 @@
+package edu.ethz.asl.user04.client;
+
+import java.util.Hashtable;
+
+public class TestClient {
+
+	public static void main(String[] args) {
+		
+		Hashtable<String, String> ht = new Hashtable<String, String>();
+		ht.put("a", "b");
+		ht.put("x", "y");
+		System.out.println(ht);
+	}
+
+}

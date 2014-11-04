@@ -1,0 +1,56 @@
+package junit.tests;
+
+import java.io.IOException;
+import java.net.UnknownHostException;
+import java.util.List;
+import java.util.Random;
+
+import junit.framework.TestCase;
+
+import org.junit.Test;
+
+import edu.ethz.asl.user04.clientAPI.ClientAPI;
+import edu.ethz.asl.user04.shared.entity.Message;
+
+public class TestDeleteQueue extends TestCase {
+
+	
+	@Test
+	public void test(){
+		Random rand = new Random();
+		String message = "Random MEssage" + rand.nextDouble();
+		ClientAPI capi=null;
+		try {
+			capi = new ClientAPI();
+		} catch (UnknownHostException e) {
+			
+			e.printStackTrace();
+			fail();
+			return;
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+			fail();
+			return;
+		}
+		int sender= rand.nextInt();
+		capi.setCliendID( sender);
+		int qu = 20333;
+		capi.deleteQueue(qu);//incase the qu was already there. 
+		boolean resp1=capi.createQueue(qu, sender);
+		assertTrue(resp1);
+		for( int i=0;i<10;i++){
+			Message m = new Message(sender, qu, ("Random MEssage" + rand.nextDouble()),sender);
+			boolean success= capi.sendMessage(m);
+			assertTrue(success);
+		}
+		List<Message> mesinq=capi.readMultipleMessages(qu,sender,false,true);
+		assertEquals(10,mesinq.size());
+		boolean delRes=capi.deleteQueue(qu);
+		assertTrue(delRes);
+		List<Message> mesinqAfter=capi.readMultipleMessages(qu,sender,false,true);
+		assertTrue(mesinqAfter.size()==0);
+		
+		
+	}
+}

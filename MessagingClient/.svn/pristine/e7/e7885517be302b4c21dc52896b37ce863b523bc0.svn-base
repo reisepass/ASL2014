@@ -1,0 +1,58 @@
+package edu.ethz.asl.user04.StandardClients;
+
+import java.io.Serializable;
+import java.util.Random;
+
+import edu.ethz.asl.user04.clientAPI.MessageAPI;
+import edu.ethz.asl.user04.shared.entity.ConfigExperimentV2;
+import edu.ethz.asl.user04.shared.entity.Message;
+import edu.ethz.user04.shared.requests.messagerequests.WriteMessageRequest;
+
+public class StdSendMessage implements Serializable, Runnable {
+	/**
+	 * FUN FUN FUN FUN 
+	 */
+	private static final long serialVersionUID = -1784111427520114075L;
+	
+	int clientID;
+	String message;
+	MessageAPI capi;
+	ConfigExperimentV2 cfg;
+	int queueID;
+
+	public StdSendMessage(int clientID, String message, MessageAPI capi,
+			ConfigExperimentV2 cfg, int queueID) {
+		super();
+		this.clientID = clientID;
+		this.message = message;
+		this.capi = capi;
+		this.cfg = cfg;
+		this.queueID = queueID;
+	}
+
+
+
+
+
+
+	@Override
+	public void run() {
+		Message prepMessage = new Message(clientID, queueID, message);
+		WriteMessageRequest wrq = new WriteMessageRequest(prepMessage);
+		wrq.setCFG(cfg);
+			while((cfg.experimentLength+cfg.experimentStartTime)<System.currentTimeMillis()){
+				boolean worked=capi.sendMessage(wrq);
+				if(!worked){
+					try {
+						Thread.sleep(100);
+						//TODO SEND Error TO Log 
+					} catch (InterruptedException e) {
+					
+						e.printStackTrace();
+					}
+				}
+				
+			}
+	}
+
+}

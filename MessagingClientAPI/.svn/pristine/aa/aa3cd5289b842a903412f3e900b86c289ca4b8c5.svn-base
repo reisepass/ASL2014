@@ -1,0 +1,58 @@
+package edu.ethz.asl.user04.clientAPI;
+
+import java.util.ArrayList;
+import java.util.List;
+
+import edu.ethz.asl.user04.shared.entity.Message;
+import edu.ethz.user04.shared.requests.messagerequests.DeleteMessageRequest;
+import edu.ethz.user04.shared.requests.messagerequests.WriteMessageRequest;
+import edu.ethz.user04.shared.requests.queuerequests.CreateQueueRequest;
+import edu.ethz.user04.shared.requests.queuerequests.DeleteQueueRequest;
+import edu.ethz.user04.shared.requests.queuerequests.QueryForQueuesWithMessagesForMe;
+import edu.ethz.user04.shared.requests.queuerequests.ReadAllMessagesRequest;
+import edu.ethz.user04.shared.requests.queuerequests.ReadPrivateMessageRequest;
+import edu.ethz.user04.shared.requests.queuerequests.ReadQueueRequest;
+
+public interface ClientAPIInterface {
+	/**
+	 * Interface inspired from Amazon SQS
+	 */
+	
+	/**
+	 * 1. Registration of attributes 
+	 */
+	public void setCliendID(int clientId);
+	public void enableRequestResponseMode(int context);
+	public void disableRequestResponseMode();
+	
+	/**
+	 * 2. Message specific APIs
+	 */
+	public boolean sendMessage(WriteMessageRequest msg);
+	//Test b)  send multi tested in /MessagingClient/src/junit/tests/MessageFocusedAPI/SendMessageToAllTestQueues.java
+	public Message sendRequestResponseMessage(WriteMessageRequest msg, long timeout); // For request-response ONLY
+	/**
+	 * 1. Get all accessible messages (Sender OR Broadcast)
+	 * 2. Client ID to be set by API and not here
+	 */
+	public List<Message> readMultipleMessages(ReadAllMessagesRequest readAllRequest);
+	// public List<Message> readAllPrivateMessage(int receiverID, int queueID,boolean removeAfterPeek,boolean  orderByTime);
+	// NEED to test remove after reading 
+	public Message readOnePrivateMessage(ReadPrivateMessageRequest readMessageRequest);
+	//Test  /MessagingClient/src/junit/tests/MessageFocusedAPI/ReadandWriteOnePrivateMessage.java
+	// Need to test remove after reading 
+	public boolean deleteMessage(DeleteMessageRequest deleteMessageRequest);
+	
+	/**
+	 * 3. Queue specific APIs
+	 */
+	public boolean createQueue(CreateQueueRequest createQueueRequest);
+	//tested in MessagingClient/src/junit/tests/MessageFocusedAPI/CreateTestingTables.java .  Make sure the tables are not already inserted else it will fail
+	//public List<Message> readQueue(ReadQueueRequest readQueueRequest); //Was replaced by readMultiMessages
+	public boolean deleteQueue(DeleteQueueRequest deleteQueueRequest);
+	// Make sure the createQ, SendmUlti MEssage and getprivate message are working THen run this : /MessagingClient/src/junit/tests/MessageFocusedAPI/TestDeleteQueue.java 
+	public ArrayList<Integer> getQueuesWithRelevantMessages(QueryForQueuesWithMessagesForMe queueRequest);
+	//Tested in MessagingClient/src/junit/tests/MessageFocusedAPI/TestGetRelevantQueues.java
+	
+	
+}

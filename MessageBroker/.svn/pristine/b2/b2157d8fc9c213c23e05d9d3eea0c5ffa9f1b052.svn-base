@@ -1,0 +1,63 @@
+package edu.ethz.asl.user04.messagebroker;
+
+import java.io.IOException;
+import java.io.ObjectInputStream;
+import java.net.Socket;
+import java.sql.Connection;
+import java.sql.SQLException;
+
+import edu.ethz.asl.user04.dbutils.DBManager;
+import edu.ethz.asl.user04.dbutils.SQLUtil;
+import edu.ethz.user04.shared.requests.messagerequests.WriteMessageRequest;
+
+public class MessageHandler implements Runnable {
+	
+	private final Socket socket;
+	DBManager dbC;
+	
+	public MessageHandler(Socket socket) {
+		this.socket = socket;
+		this.dbC = new DBManager("myuser2", "172.30.83.168", "5432", "mydb1", "spartan");
+	}
+
+	@Override
+	public void run() {
+
+		ObjectInputStream oi;
+		try {
+			oi = new ObjectInputStream(socket.getInputStream());
+			Object messageObject = oi.readObject();
+			//System.out.println("Received message: "+ messageObject);
+			
+			// TODO Process the message
+			// Things to do:
+			// 1. Enqueue the message
+			
+			String queryStr = "";
+			
+			if (messageObject instanceof WriteMessageRequest) {
+				WriteMessageRequest message = (WriteMessageRequest) messageObject;
+				Connection conn = dbC.newClientConnection();
+				SQLUtil sqlutil = new SQLUtil(conn);
+				try {
+					sqlutil.sendSQL(queryStr);
+				} catch (SQLException e) {
+					System.out.println("Something went horribly wrong when trying to insert Message");
+					e.printStackTrace();
+				}
+			}
+			else {
+				System.out.println("Unable to detect instance of ObjectStream");
+			}
+			
+			oi.close();
+			
+		} catch (IOException e) {
+			e.printStackTrace();
+		} catch (ClassNotFoundException e) {
+			e.printStackTrace();
+		}
+		
+	}
+
+}

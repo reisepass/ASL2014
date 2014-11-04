@@ -1,0 +1,75 @@
+package junit.tests.MessageFocusedAPI;
+
+import java.io.IOException;
+import java.net.UnknownHostException;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Random;
+
+import junit.framework.TestCase;
+
+import org.junit.Test;
+
+import edu.ethz.asl.user04.clientAPI.MessageAPI;
+import edu.ethz.asl.user04.shared.entity.Message;
+import edu.ethz.user04.shared.requests.messagerequests.WriteMessageRequest;
+
+public class TestDeleteQueue extends TestCase {
+	@Test
+	public void test(){
+		MessageAPI mesAPI=null;
+		try {
+			mesAPI = new MessageAPI();
+		} catch (UnknownHostException e) {
+			e.printStackTrace();	
+			mesAPI.closeConnection();
+			return ;
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+			mesAPI.closeConnection();
+			return ;
+		}
+		
+		Random ran = new Random();
+		int clientID = Math.abs(ran.nextInt());
+		
+		for( int i=10000 ; i<10010;i++){
+			mesAPI.createQueue(i, clientID);	//its ok if they are alreayd there
+		}
+		
+		ArrayList<Integer> qList = new ArrayList<Integer>();
+		for( int i=10000 ; i<10010;i++){
+			qList.add(i);
+		
+			 
+		}
+		int reciever =  Math.abs(ran.nextInt());
+		String prefix = "ToBeDeleted412431231"+clientID;
+		Message m1 = new Message(clientID, qList, prefix, reciever, -1, 1);
+
+		assertTrue(mesAPI.sendMessage(new WriteMessageRequest(m1)));
+		
+		for( int qi=10000 ; qi<10010;qi++){
+			assertTrue(mesAPI.deleteQueue(qi));
+		}
+		MessageAPI recieveMAPI=null;
+		try {
+			recieveMAPI = new MessageAPI();
+		} catch (UnknownHostException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		for( int i=10000 ; i<10010;i++){
+			List<Message> back = recieveMAPI.readMultipleMessages(i, reciever, false,true);
+			assertEquals(0,back.size());
+		}
+	
+		 //TODO test if the queue is removed from queues table in postgresql
+		 
+		
+	}
+}

@@ -1,0 +1,79 @@
+package edu.ethz.asl.user04.client;
+
+import java.io.IOException;
+import java.net.UnknownHostException;
+import java.util.ArrayList;
+import java.util.List;
+
+import edu.ethz.asl.user04.clientAPI.ClientAPI;
+import edu.ethz.asl.user04.messagebroker.MessageBrokerService;
+import edu.ethz.asl.user04.shared.entity.Message;
+import edu.ethz.user04.shared.requests.queuerequests.ReadPrivateMessageRequest;
+import edu.ethz.user04.shared.requests.queuerequests.ReadQueueRequest;
+
+public class ClientA {
+
+	public static void main(String[] args) throws UnknownHostException,
+			IOException {
+		MessageBrokerService service = new MessageBrokerService();
+		for (int i = 0; i < 10; i++) {
+			
+			ReadQueueRequest rqr = new ReadQueueRequest(5, true, false);
+			
+			ClientAPI c = new ClientAPI();
+			//Message ret = 	c.readFromQueue(rqr);
+			ArrayList<Integer> ql = new ArrayList<Integer>();
+			ql.add(5);
+			/*Message m = new Message(1, 5, "newpay");
+			m.setReceiverId(55);
+			c.sendMessage(m);
+			Message m2 = new Message(1, 5, "meh");
+			m2.setReceiverId(55);
+			c.sendMessage(m2);
+			c.sendMessage(m2);
+			c.sendMessage(m2);
+			c.sendMessage(m2);
+			c.sendMessage(m2);
+			c.sendMessage(m2);
+			c.sendMessage(m2);
+			c.sendMessage(m2);
+			c.sendMessage(m2);
+			c.sendMessage(m2);
+			c.sendMessage(m2);
+			c.sendMessage(m2);
+			c.sendMessage(m2);
+			c.sendMessage(m2);
+			c.sendMessage(m2);
+			c.sendMessage(m2);
+			c.sendMessage(m2);
+			c.sendMessage(m2);*/
+			
+			
+			
+			
+		//	List<Message> mesOut=c.readAllPrivateMessage(55,5,false,true);
+			//List<Message> mesOut2=c.readAllPrivateMessage(55,5,true,true);
+			//List<Message> mesOut3=c.readAllPrivateMessage(55,5,false,true);
+			
+			/*c.sendMessage(m2);
+			c.sendMessage(m2);
+			c.sendMessage(m2);*/
+			ReadPrivateMessageRequest rm = new ReadPrivateMessageRequest( 55,5, true, true);
+			Message mmmm = c.readOnePrivateMessage(rm);
+			System.out.println(mmmm.getPayLoad());
+			ReadPrivateMessageRequest rm2 = new ReadPrivateMessageRequest( 55,5, true, true);
+			Message mmmm2 = c.readOnePrivateMessage(rm2);
+			System.out.println(mmmm2.getPayLoad());
+			
+			
+			
+			
+			
+			c.closeConnection();
+			int a=0;
+			
+		}
+		service.shutdown();
+	}
+
+}

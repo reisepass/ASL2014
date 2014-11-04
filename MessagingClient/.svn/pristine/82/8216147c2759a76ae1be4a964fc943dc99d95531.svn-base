@@ -1,0 +1,21 @@
+package junit.tests;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+
+import edu.ethz.asl.user04.dbutils.DBManager;
+
+
+public class TestingConnecitonPoolIssue {
+	
+	public static void main(String argsp[]){
+		ExecutorService pool = Executors.newFixedThreadPool(10);
+		DBManager dbTMP =new DBManager("myuser2", "127.0.0.1", "5432", "mydb1", "spartan",5);
+		for ( int i =0;i<200; i++){
+			Worker w = new Worker(dbTMP,100,i);
+			pool.execute(w);
+		}
+		pool.shutdown();
+		
+	}
+
+}

@@ -1,0 +1,149 @@
+package messageAPIFocusedTests;
+
+/**
+ * @author Amr
+ * the test sends 50 messages from client one to client two through queue [0,49]
+ * then attempts to read all the 50 without removing (read returs true)
+ * then reads all of them with removing  (read return true)
+ * then attempts to read the non-existent messages after their removal (should return false)
+ * and attempts to read from non existing queues
+ * 
+ * Dependencies: createQueue and sendMessage should be functioning correctly
+ * 
+ * BUGS IN SQLUTIL: 
+ * 1)  getPrivateMessage() didnot have the senderID as a parameter
+ * so i added the sender id, if it is -1, search for message from any sender
+ * 
+ * 2) should take into account broadcast messages (receiverId = -1)
+ * 
+ * 3) The message handler ignored the boolean parameters provided (like removeAfterPeek)
+ * and just provided default values for them!!
+ * 
+ * NOTE: empty the MESSAGE TABLE AND THE QUEUES TABLE BEFORE TESTING!!!!
+ */
+
+import edu.ethz.asl.user04.clientAPI.MessageAPI;
+import edu.ethz.asl.user04.messagebroker.MessageBrokerService;
+import edu.ethz.asl.user04.shared.entity.Message;
+import edu.ethz.user04.shared.requests.messagerequests.WriteMessageRequest;
+import edu.ethz.user04.shared.requests.queuerequests.CreateQueueRequest;
+import edu.ethz.user04.shared.requests.queuerequests.ReadPrivateMessageRequest;
+
+public class testReadOnePrivateMessage {
+	/*
+	 * create 50 queues and send a message to each of them
+	 * 
+	 */
+	public static void sendMessagesAndCreateQueues(MessageAPI mapi){
+		
+		for(int i =0; i<50; i++){
+			CreateQueueRequest createQueue = new CreateQueueRequest(i, "queue "+i);
+			mapi.createQueue(createQueue);
+		}
+		
+		for(int i =0; i<50; i++){
+			// message from client 1 to client 2
+			Message msg = new Message(1, i, "message "+i, 2);
+			WriteMessageRequest writeMessage = new WriteMessageRequest(msg);
+			mapi.sendMessage(writeMessage);
+		}
+		
+	}
+	/*
+	 * 
+	 * read a message, remove or not depends on the remove value
+	 */
+	
+	public static boolean readMessages(MessageAPI mapi, boolean remove){
+		boolean result = true;
+		for(int i =0; i<50; i++){
+			ReadPrivateMessageRequest readRequest = new ReadPrivateMessageRequest(1, i, remove, false);
+			Message msg = mapi.readOnePrivateMessage(readRequest);
+			String retrievedPayload = msg.getPayload();
+			String expectedPayload = "message "+i;
+			System.out.println("retrieved: "+retrievedPayload+" expected: "+expectedPayload);
+			if(!retrievedPayload.equals(expectedPayload)){
+				result = false;
+				break;
+			}
+		}
+		return result;
+		
+	}
+	
+	public static boolean readNonExistentMessagesFromNonExistentQueues(MessageAPI mapi){
+		boolean result = true;
+		
+		// precondition queues exist but already empty
+		int i  =0;
+		for(; i<50; i++){
+		ReadPrivateMessageRequest readRequest = new ReadPrivateMessageRequest(1, i, false, false);
+		Message msg = mapi.readOnePrivateMessage(readRequest);
+		if(msg!=null){
+			result = false;
+			break;
+		}
+	}
+			
+		/*
+		 * Reading from nonexistent queue shud return null as there shud be no messages in that queue
+		 * 
+		 */
+		System.out.println("i: "+i);
+		// queues donot exist
+		for(i = 51; i<100; i++){
+			ReadPrivateMessageRequest readRequest = new ReadPrivateMessageRequest(1, i, false, false);
+			Message msg = mapi.readOnePrivateMessage(readRequest);
+			if(msg!=null){
+				result = false;
+				break;
+			}
+		}
+		return result;
+	}
+	
+	
+	public static boolean test(){
+		MessageBrokerService service = new MessageBrokerService();
+		MessageAPI mapi = null;
+		try{
+			mapi = new MessageAPI();
+		}
+		catch(Exception e){
+			
+		}
+		
+		
+		mapi.setCliendID(1);
+		sendMessagesAndCreateQueues(mapi);
+		mapi.setCliendID(2);
+		
+		boolean result = true;
+		
+		/*
+		 * read wothout removal
+		 */
+		
+		result &= readMessages(mapi, false);
+		
+		/*
+		 * read and remove
+		 */
+		
+		result &= readMessages(mapi, true);
+		
+		
+		/*
+		 * read the non existent 50 messages, should always return null
+		 */
+		
+		result &= readNonExistentMessagesFromNonExistentQueues( mapi);
+		
+		return result;
+		
+	}
+	public static void main(String[]args){
+		System.out.println(test());
+	}
+
+}

@@ -1,0 +1,19 @@
+package edu.ethz.user04.shared.requests.messagerequests;
+
+import java.io.Serializable;
+
+public class DeleteMessageRequest implements Serializable {
+	
+	/**
+	 * 
+	 */
+	private static final long serialVersionUID = 1L;
+	public int clientid;
+	public int messageid;
+	public DeleteMessageRequest(int clientid, int messageid) {
+		super();
+		this.clientid = clientid;
+		this.messageid = messageid;
+	}
+	
+}

@@ -1,0 +1,37 @@
+package edu.ethz.asl.user04.clientAPI;
+
+import java.util.List;
+
+import edu.ethz.asl.user04.shared.entity.Message;
+import edu.ethz.user04.shared.requests.messagerequests.DeleteMessageRequest;
+import edu.ethz.user04.shared.requests.messagerequests.ReadMessageRequest;
+import edu.ethz.user04.shared.requests.messagerequests.WriteMessageRequest;
+import edu.ethz.user04.shared.requests.queuerequests.CreateQueueRequest;
+import edu.ethz.user04.shared.requests.queuerequests.DeleteQueueRequest;
+import edu.ethz.user04.shared.requests.queuerequests.ReadQueueRequest;
+
+public interface ClientAPIInterface {
+	/**
+	 * Interface inspired from Amazon SQS
+	 */
+	
+	/**
+	 * 1. Registration of attributes 
+	 */
+	public void setCliendID(int clientId);
+	
+	/**
+	 * 2. Message specific APIs
+	 */
+	public boolean sendMessage(Message msg);
+	public List<Message> readMessage(ReadMessageRequest readMessageRequest);
+	public boolean deleteMessage(DeleteMessageRequest deleteMessageRequest);
+	
+	/**
+	 * 3. Queue specific APIs
+	 */
+	public boolean createQueue(CreateQueueRequest createQueueRequest);
+	public List<Integer> readQueue(ReadQueueRequest readQueueRequest);
+	public boolean deleteQueue(DeleteQueueRequest deleteQueueRequest);
+	
+}

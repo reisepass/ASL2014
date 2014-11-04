@@ -1,0 +1,447 @@
+package edu.ethz.asl.user04.dbutils;
+
+import java.sql.Connection;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.Statement;
+import java.util.ArrayList;
+
+import edu.ethz.asl.user04.shared.entity.Message;
+
+
+/**
+ * Assumed DB schema : 
+ * 
+ * messages :  int messageid,senderid,receiverid,queueid,context,priority; time: timeofarrival; String message
+ * queues   :  int queueid  ,createdby; time: creationtime
+ * clients  :  int clienttype,clientid; time: creationtime
+ * @author mort
+ *
+ */
+public class SQLUtil {
+	protected Connection conn;
+	ArrayList<String> messagesTableCols;
+	ArrayList<String> colQueues;
+	int resultChunkSize;
+	public SQLUtil(Connection inpC){
+		conn=inpC;
+		messagesTableCols = new ArrayList<String>();
+		messagesTableCols.add("messageid");
+		messagesTableCols.add("senderid");
+		messagesTableCols.add("receiverid");
+
+		messagesTableCols.add("queueid");
+		messagesTableCols.add("context");
+		messagesTableCols.add("priority");
+		messagesTableCols.add("message");
+		//messagesTableCols.add("timeofarrial");
+		
+		colQueues= new ArrayList<String>();
+		colQueues.add("queueid");
+		colQueues.add("createdby");
+		colQueues.add("creationtime");
+		
+		resultChunkSize=5;//TODO this is choosen arbitrarily
+	}
+	private Connection getDBConnection(){
+		return conn;
+	}
+	
+	/*
+	 * er is false when a statement is executed
+	 * returns 1 if statement was sent and executed
+	 * else return -1;
+	 * MODIFIED THE ER VARIABLE
+	 */
+	public int sendSQL(String inpCommand) throws SQLException{
+		int errorCode = 1;
+		Statement statmt=null;
+		Connection myconn = getDBConnection();
+		boolean er;
+		try{
+			statmt=myconn.createStatement();
+			er=statmt.execute(inpCommand);
+			//System.out.println("erVal: "+er);
+			er = true;
+		}
+		catch(SQLException e){
+			System.out.println(e.getMessage());
+			er = false;
+		}
+		finally{
+			if(statmt!=null)
+				statmt.close();
+			
+		}
+		return (er)?1:-1;
+	}
+	
+	public ArrayList<ArrayList<String>> respondSQL(String inpCommand, ArrayList<String> requestedColumNames) throws SQLException{
+		ArrayList<ArrayList<String>> responses = new ArrayList<ArrayList<String>>();
+		Statement statmt=null;
+
+		boolean er =false;
+		try{
+			statmt=getDBConnection().createStatement();
+			ResultSet rs=statmt.executeQuery(inpCommand);
+			
+			while (rs.next()) {
+				
+				ArrayList<String> curStrings = new ArrayList<String>();
+				for(String colName : requestedColumNames){
+					curStrings.add(rs.getString(colName));
+				
+				}
+				responses.add(curStrings);
+			}
+ 
+			
+		}
+		catch(SQLException e){
+			System.out.println(e.getMessage());
+		}
+		finally{
+			if(statmt!=null)
+				statmt.close();
+			
+		}
+		return responses;
+	}
+	
+	
+
+	
+	//TODO check if client name is unique 
+	public int CreateClient(int clientID, boolean isSender) throws SQLException{ //Returns client ID
+		int clientType = (isSender)? 1:0;
+		String makeClient = "INSERT INTO clients (clientid,clienttype) VALUES ("+clientID+","+clientType+");";
+		if(!isClientIDtaken(clientID))
+			return sendSQL(makeClient);
+		else
+			return -1;
+	}
+	
+	public boolean isClientIDtaken(int clientID) throws SQLException{
+		String sql="SELECT * FROM clients where clientid="+clientID+";";
+		ArrayList<String> cols = new ArrayList<String>();
+		cols.add("clientid");
+ 		 ArrayList<ArrayList<String>> ret =  respondSQL(sql,cols);
+ 		 return (ret.size()>0) ? true : false; 
+		
+	}
+	
+	
+	public boolean CreateQueue(int pruposedID, int clientID) throws SQLException{
+		return CreateQueue( pruposedID,  clientID, "NONAME") ;
+	}
+	
+	
+	//returns queueID
+	/*
+	 * return -1 if q is taken and thus queue was not created
+	 * 
+	 */
+	public boolean CreateQueue(int pruposedID, int clientID, String queueName) throws SQLException{
+		if(!queueIdTaken(pruposedID)){
+			String sql= "INSERT INTO queues (queueid, queuename, createdby) VALUES("+pruposedID+",'"+ queueName+"',"+clientID+")"+";";
+			boolean res;
+			int resp = sendSQL(sql);
+			if(resp ==1){
+				res = true;
+			}
+			else res = false;
+			System.out.println("query sent, db resp: "+resp);
+			return res;
+		}
+		else
+			return false; 
+	}
+	public boolean queueIdTaken(int qID) throws SQLException  {
+		String sql = "SELECT queueid FROM queues WHERE queueid="+qID+";";
+		ArrayList<String> cols = new ArrayList<String>();
+		cols.add("queueid");
+ 		 ArrayList<ArrayList<String>> ret =  respondSQL(sql,cols);
+ 		 return (ret.size()>0) ? true : false; 
+ 		 
+	}
+	public boolean deleteMessage( int messageId)throws SQLException{
+		String sql = "DELETE FROM messages WHERE messageid="+messageId+";";
+		int err = sendSQL(sql);
+	    if(err==-1)
+	    	return false;
+	    else
+	    	return true;
+	}
+	public boolean deleteQueue(int qID) throws SQLException{
+		if(queueIdTaken(qID)){
+			String sql = "DELETE FROM messages WHERE queueid="+qID+";";
+		    int err = sendSQL(sql);
+		    System.out.println("err1: "+err);
+		    if(err==-1)
+		    	return false;
+		    else{
+			String sqlQ = "DELETE FROM queues WHERE queueid="+qID+";";
+			err = sendSQL(sqlQ);
+			System.out.println("err2: "+err);
+			return (err==-1)? false : true;
+		    }
+		}
+		return false; 
+	}
+	public ArrayList<ArrayList<String>> listQueues() throws SQLException{
+		return listQueues(0);
+	}
+	public ArrayList<ArrayList<String>> listQueues(int whichChunk) throws SQLException{
+		String sql = "SELECT * FROM queues LIMIT "+resultChunkSize+" OFFSET "+(resultChunkSize*whichChunk)+";";
+
+		ArrayList<ArrayList<String>> result = respondSQL(sql,colQueues);
+		
+		return result; 
+	}
+	public ArrayList<Integer> multiMessage(String MsgText, int Sender, int Receiver, int Context, int prirority, ArrayList<Integer> queueids){
+		ArrayList<Integer> out = new ArrayList<Integer>();
+		for( int i=0;i<queueids.size();i++){
+			out.add(addMessage(MsgText, Sender, Receiver, Context, prirority, queueids.get(i)));
+		}
+		return out;
+	}
+	/**
+	 * We assume MessageTexts dont have special characters that could mess up the query
+	 * @param MsgText
+	 * @param Sender
+	 * @param Receiver
+	 * @param Context
+	 * @param prirority
+	 * @param queueid
+	 * @return
+	 */
+	public int addMessage( String MsgText, int Sender, int Receiver, int Context, int prirority, int queueid){
+			String makeClient = " INSERT INTO messages (senderid,receiverid,queueid,context,priority,message) " +
+										"VALUES ("+Sender+","+Receiver+","+queueid+","+Context+","+prirority+",'"+MsgText+"');";
+		//TODO return messageID 
+			int errCode =-1;
+		  try {
+			  errCode= sendSQL(makeClient);
+		} catch (SQLException e) {
+			System.err.println(e.getMessage());
+			e.printStackTrace();
+		}
+		return errCode; 
+	}
+	
+	private Message constructMessage ( ArrayList<String> stdOutput){
+	
+		int messageid = Integer.parseInt(stdOutput.get(0));//TODO change this to long
+		
+		int SendID = Integer.parseInt(stdOutput.get(1));
+		int receiverid    = Integer.parseInt(stdOutput.get(2));
+		int qid = Integer.parseInt(stdOutput.get(3));
+		int context = Integer.parseInt(stdOutput.get(4));
+		int pri   = Integer.parseInt(stdOutput.get(5));
+		
+		String mes = stdOutput.get(6);
+		Message out = new Message (SendID,qid,mes);
+		out.setMessageId(messageid);
+		out.setReceiverId(receiverid);
+		out.setContext(context);
+		out.setPriority(pri);
+		
+		return out;
+	}
+	
+	/**
+	 * 
+	 * @param QueueID
+	 * @return
+	 */
+	public Message getQueue(int QueueID,boolean removeAfter){  	
+		return getQueuePriorityFirst(QueueID,removeAfter); 
+	}
+	
+	
+	
+	
+	
+	public Message getQueuePriorityFirst(int QueueID,boolean removeAfter){  //TODO allow specification of sorting by time or priority
+		ArrayList<Message> outMessages = new ArrayList<Message>();
+		String getMessagesOfThisQueue = "SELECT * FROM messages WHERE queueid="+QueueID+"" +
+				" ORDER BY priority LIMIT 2;";
+		Message out =null;
+		
+		try {
+			ArrayList<ArrayList<String>> respo = respondSQL(getMessagesOfThisQueue,messagesTableCols);
+			
+			int a =0;
+			if( respo.size()>0)
+				out= constructMessage(respo.get(0));
+			if(removeAfter){
+				String sqlRemove= "DELETE FROM messages WHERE messageid="+out.getMessageId()+";";
+				sendSQL(sqlRemove);
+			}
+		} catch (SQLException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		
+		
+		return out; 
+	}
+	
+	public Message getQueueClosestTime(int QueueID,boolean removeAfter){  //TODO allow specification of sorting by time or priority
+		ArrayList<Message> outMessages = new ArrayList<Message>();
+		String getMessagesOfThisQueue = "SELECT * FROM messages WHERE queueid="+QueueID+"" +
+				" ORDER BY timeofarrival LIMIT 2;";
+		Message out =null;
+		
+		try {
+			ArrayList<ArrayList<String>> respo = respondSQL(getMessagesOfThisQueue,messagesTableCols);
+			
+			int a =0;
+			if( respo.size()>0)
+				out= constructMessage(respo.get(0));
+			
+			if(removeAfter){
+				String sqlRemove= "DELETE FROM messages WHERE messageid="+out.getMessageId()+";";
+				sendSQL(sqlRemove);
+			}
+		} catch (SQLException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		
+		
+		return out; 
+	}
+	
+	
+
+	
+	public Message getPrivateMessage(int QueueID,boolean removeAfter,boolean orderByTime, int clientID, int context){  //TODO allow specification of sorting by time or priority
+		ArrayList<Message> outMessages = new ArrayList<Message>();
+		String getMessagesOfThisQueue = "SELECT * FROM messages WHERE "
+				+ " receiverid=" + clientID
+				+ " AND queueid=" + QueueID
+				+ (context == 0? "" : " AND context=" + context)
+				+ " ORDER BY priority LIMIT 1;";
+		Message out =null;
+		
+		System.out.println("Executing query: " + getMessagesOfThisQueue);
+		
+		try {
+			ArrayList<ArrayList<String>> respo = respondSQL(getMessagesOfThisQueue,messagesTableCols);
+			
+			int a =0;
+			if(respo.size()==0){
+				 return null;
+			}
+			out= constructMessage(respo.get(0));
+			if(removeAfter){
+				String sqlRemove= "DELETE FROM messages WHERE messageid="+out.getMessageId()+";";
+				sendSQL(sqlRemove);
+			}
+		} catch (SQLException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		
+		
+		return out; 
+	}
+	
+	/**
+	 * Author - OT
+	 * This retrieves 1 single message with senderid = clientid
+	 * If context = 0, context is ignored
+	 * Added to handle RequestResponse case
+	 * @param QueueID
+	 * @param removeAfter
+	 * @param orderByTime
+	 * @param clientID Sender ID
+	 * @param context
+	 * @return
+	 */
+	public Message getPrivateMessageFromSender(int QueueID,boolean removeAfter,boolean orderByTime, int clientID, int context){  //TODO allow specification of sorting by time or priority
+		ArrayList<Message> outMessages = new ArrayList<Message>();
+		String getMessagesOfThisQueue = "SELECT * FROM messages WHERE "
+				+ " senderid=" + clientID
+				+ " AND queueid=" + QueueID
+				+ (context == 0? "" : " AND context=" + context)
+				+ " ORDER BY priority LIMIT 1;";
+		Message out =null;
+		
+		System.out.println("Executing query: " + getMessagesOfThisQueue);
+		
+		try {
+			ArrayList<ArrayList<String>> respo = respondSQL(getMessagesOfThisQueue,messagesTableCols);
+			
+			int a =0;
+			if(respo.size()==0){
+				 return null;
+			}
+			out= constructMessage(respo.get(0));
+			if(removeAfter){
+				String sqlRemove= "DELETE FROM messages WHERE messageid="+out.getMessageId()+";";
+				sendSQL(sqlRemove);
+			}
+		} catch (SQLException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		
+		
+		return out; 
+	}
+	
+	//TODO 
+	public ArrayList<Message> getAllPrivateMessages(int QueueID,boolean removeAfter,boolean orderByTime, int receiverID,int whichChunk) throws SQLException{
+		ArrayList<Message> outMessages = new ArrayList<Message>();
+	
+		String offset="";
+		if(!removeAfter)
+			offset=" OFFSET "+(resultChunkSize*whichChunk);
+		
+		
+		String getMessagesOfThisQueue = "SELECT * FROM messages"
+				+ " WHERE receiverid in (-1, " + receiverID + ")"
+				+ " AND queueid="
+				+ QueueID
+				+ ""
+				+ " ORDER BY "
+				+ ((orderByTime) ? "timeofarrival" : "priority")
+				+ " LIMIT "
+				+ resultChunkSize + offset + ";";
+		
+		System.out.println("Query executed: " + getMessagesOfThisQueue);
+		
+			
+		
+		try {
+			ArrayList<ArrayList<String>> respo = respondSQL(getMessagesOfThisQueue,messagesTableCols);
+			if(respo.size()==0){
+				int a =0;
+			}
+			
+			System.out.println("Size = " + respo.size() + ". Response messages from DB: ,");
+			for( ArrayList<String> messageRet: respo){
+				Message tmpM = constructMessage(messageRet);
+				System.out.println(tmpM);
+				if(removeAfter){
+					String sqlRemove= "DELETE FROM messages WHERE messageid="+tmpM.getMessageId()+";"; //TODO these delete statments could bo grouped into one
+					sendSQL(sqlRemove);
+				}
+				outMessages.add(tmpM);
+				
+			}
+			
+			
+			
+		} catch (SQLException e) {
+			System.err.println("#@"+e.getMessage());
+			e.printStackTrace();
+		}
+		System.out.println("end of method");
+		return outMessages; 
+	}
+	
+	
+}

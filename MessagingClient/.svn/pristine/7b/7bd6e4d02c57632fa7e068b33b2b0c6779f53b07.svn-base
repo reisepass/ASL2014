@@ -1,0 +1,64 @@
+package edu.ethz.asl.user04.OTwantsProcessesSoHereYouGoOOOO;
+
+import java.io.FileInputStream;
+import java.io.IOException;
+import java.net.UnknownHostException;
+import java.util.Properties;
+import java.util.logging.Level;
+import java.util.logging.Logger;
+
+import edu.ethz.asl.user04.clientAPI.MessageAPI;
+import edu.ethz.asl.user04.shared.logging.MessagingSystemLogger;
+import edu.ethz.user04.shared.requests.queuerequests.CreateQueueRequest;
+
+public class CreateQueueSetup {
+	
+	public final static Logger LOGGER = MessagingSystemLogger
+			.getLoggerForClass(CreateQueueSetup.class.getName());
+
+	public static void main(String[] args) throws UnknownHostException,
+	IOException {
+		
+		int CLIENT_ID = 123456;
+		
+		if (args == null || args.length < 2)
+			System.exit(1);
+		else {
+			int num_of_queues_to_create = Integer.parseInt(args[1]);
+			
+			LOGGER.info(String.format("[DEBUG] Creating %d queues", num_of_queues_to_create));
+
+			Properties client_prop = new Properties();
+			client_prop
+					.load(new FileInputStream("properties/client.properties"));
+			String brokerServiceURL = client_prop.getProperty("mw_url");
+			int brokerServicePort = Integer.parseInt(client_prop
+					.getProperty("mw_port"));
+			
+			MessageAPI mapi = new MessageAPI(CLIENT_ID, brokerServiceURL,
+					brokerServicePort);
+			
+			CreateQueueRequest cqr;
+			
+			for(int i=0; i<num_of_queues_to_create; i++) {
+				cqr = new CreateQueueRequest(i+1, "Queue " + i);
+				
+				LOGGER.log(
+						Level.INFO,
+						String.format(
+								"[METRIC] type=request request_type=CreateQueueRequest request_id=%s tier=client tag=sending_request_from_client_to_api client_id=%d",
+								cqr.getRequestUUID(), CLIENT_ID));
+				boolean res = mapi.createQueue(cqr);
+				
+				LOGGER.log(
+						Level.INFO,
+						String.format(
+								"[METRIC] type=response request_type=CreateQueueRequest request_id=%s tier=client result=%s tag=received_response_at_client_from_api client_id=%d",
+								cqr.getRequestUUID(), (res ? "PASS"
+										: "FAIL"), CLIENT_ID));
+				
+				LOGGER.info(String.format("[DEBUG] [%s] Created queue %d", (res? "PASS" : "FAIL"), i+1 ));
+			}
+		}
+	}
+}

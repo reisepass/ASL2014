@@ -1,0 +1,76 @@
+package edu.ethz.asl.user04.messagebroker;
+
+import java.io.IOException;
+import java.io.ObjectOutputStream;
+import java.io.Serializable;
+import java.net.Socket;
+import java.util.ArrayList;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+
+import edu.ethz.asl.user04.shared.entity.Message;
+
+public class MessageBrokerService {
+
+	private static final int HANDLERS = 10;
+	private static final int SERVER_PORT = 5009;
+	
+	private ExecutorService pool;
+	
+	public MessageBrokerService() {
+		ListenerService listener;
+		try {
+			pool = Executors.newFixedThreadPool(HANDLERS);
+			listener = new ListenerService(SERVER_PORT, pool);
+			/**
+			 * TODO
+			 * Currently instantiate with a single Listener which accepts connections.
+			 * Try extending to invoke multiple listeners using same ThreadPool.
+			 */
+	        pool.submit(listener);
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+	}
+	
+	public void shutdown() {
+		System.out.println("Shutting down");
+		pool.shutdown();
+		System.out.println("Shutdown complete");
+	}
+	
+	public static void main(String[] args) throws IOException {
+
+		MessageBrokerService mbs = new MessageBrokerService();
+		Socket socket = null;
+		String[] messages = {"aaa!", "bbb!", "ccc!", "ddd!"};
+		
+		ArrayList<Message> messageList = new ArrayList<Message>();
+		
+		messageList.add(new Message(1, 1, "aaa"));
+		messageList.add(new Message(1, 2, "bbb"));
+		messageList.add(new Message(2, 3, "ccc"));
+		messageList.add(new Message(2, 1, "ddd"));
+		messageList.add(new Message(3, 2, "eee"));
+		messageList.add(new Message(1, 3, "fff"));
+		
+		// Send a message
+		try {
+			for (Message message : messageList) {
+				socket = new Socket("127.0.0.1", 5009);
+				
+				ObjectOutputStream oo = new ObjectOutputStream(socket.getOutputStream());
+				
+				oo.writeObject(message);
+				oo.close();
+				socket.close();
+			}
+		} catch (IOException e) {
+			e.printStackTrace();
+		} finally {
+			socket.close();
+			mbs.shutdown();
+		}
+	}
+
+}

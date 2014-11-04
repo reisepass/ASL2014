@@ -1,0 +1,68 @@
+package edu.ethz.user04.shared.requests.queuerequests;
+
+import java.io.Serializable;
+
+/**
+ * This DOES NOT read messages from a particular sender.
+ * This reads messages accessible to this user ONLY, i.e, this provides a way to get:
+ * a. Broadcast messages AND
+ * b. Messages where receiver_id = this client
+ * @author amr && tribhu
+ *
+ */
+public class ReadAllMessagesRequest implements Serializable{
+	/**
+	 * 
+	 */
+	private static final long serialVersionUID = 1L;
+	public int receiverID;
+	public int queueID;
+	public boolean removeAfterPeek;
+	public boolean orderByTime;
+	public int page; // the messages are returned a limited number at a time. So you have to keep requesting the next page until you get an empty page
+	public boolean isOrderByTime() {
+		return orderByTime;
+	}
+
+	public int getContext() {
+		return context;
+	}
+
+	private int context = 0; // ReadRequest is broadcast (context = 0) by default
+	
+	/**
+	 * Read all private messages 
+	 * @param receiverID
+	 * @param queueID
+	 * @param removeAfterPeek
+	 * @param orderByTime
+	 * @param page
+	 */
+	public ReadAllMessagesRequest(int queueID,
+			boolean removeAfterPeek, boolean orderByTime, int page) {
+		super();
+		this.queueID = queueID;
+		this.removeAfterPeek = removeAfterPeek;
+		this.orderByTime = orderByTime;
+		this.page = page;
+	}
+	
+	/**
+	 * 
+	 * @param queueID
+	 * @param removeAfterPeek
+	 * @param orderByTime
+	 * @param page
+	 * @param context
+	 */
+	public ReadAllMessagesRequest(int queueID,
+			boolean removeAfterPeek, boolean orderByTime, int page, int context) {
+		this(queueID, removeAfterPeek, orderByTime, page);
+		this.context = context;
+	}
+	
+	public void setReceiverID(int receiverID) {
+		this.receiverID = receiverID;
+	}
+	
+}

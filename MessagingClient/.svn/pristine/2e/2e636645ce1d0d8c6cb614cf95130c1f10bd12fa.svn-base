@@ -1,0 +1,92 @@
+package messageAPIFocusedTests;
+
+import java.util.ArrayList;
+import java.util.HashSet;
+
+import edu.ethz.asl.user04.clientAPI.MessageAPI;
+import edu.ethz.asl.user04.messagebroker.MessageBrokerService;
+import edu.ethz.asl.user04.shared.entity.Message;
+import edu.ethz.user04.shared.requests.messagerequests.WriteMessageRequest;
+import edu.ethz.user04.shared.requests.queuerequests.CreateQueueRequest;
+import edu.ethz.user04.shared.requests.queuerequests.QueryForQueuesWithMessagesForMe;
+
+/**
+ * 
+ * 	TEST SHOULD BE RUN WITH EMPTY MESSAGES AND QUEUES TABLE 
+ *  so that existing records in the DB don't conflict with the test
+ * 
+ * @author Amr
+ * 
+ * Dependencies: createQueue, sendMessage (These functionalities should be tested first);
+ * 
+ * 
+ * test first creates 50 queues, 
+ * then checks for relevant queues (should be emoty as there are no messages yet)
+ * and then sends 30 messages to the first 30 queues only
+ * and then gets the relevant queue list 
+ * and checks that it contains the indices of the first 30 queues
+ * 
+ */
+
+public class testGetQueuesWithRelevantMessages {
+	
+	public static boolean test(){
+		MessageBrokerService service = new MessageBrokerService();
+		MessageAPI mapi = null;
+		try{
+			mapi = new MessageAPI();
+		}
+		catch(Exception e){
+			
+		}
+		
+		mapi.setCliendID(1);  // client one
+		
+		boolean result = true;
+		
+		for(int i =0; i<50; i++){
+			CreateQueueRequest createQueue = new CreateQueueRequest(i, "queue: "+i);
+			result|=mapi.createQueue(createQueue);
+		}
+		
+		QueryForQueuesWithMessagesForMe relevantQueues =  new QueryForQueuesWithMessagesForMe();
+		ArrayList<Integer> relevantQueueIndices = mapi.getQueuesWithRelevantMessages(relevantQueues);
+		
+		if(relevantQueueIndices.size()!=0){
+			return false;  // there are queues although user has no messages for him
+		}
+		
+		// client one sends client two a message via queue i [0,29]
+		for(int i =0; i<30; i++){
+			Message msg = new Message(1, i, "message", 2);
+			WriteMessageRequest writeMessage = new WriteMessageRequest(msg);
+			mapi.sendMessage(writeMessage);
+		}
+		mapi.setCliendID(2);
+	
+		relevantQueues =  new QueryForQueuesWithMessagesForMe();
+		relevantQueueIndices = mapi.getQueuesWithRelevantMessages(relevantQueues);
+		
+	
+		
+		HashSet<Integer> lookup = new HashSet<Integer>();
+		for(int i =0; i<relevantQueueIndices.size(); i++){
+			lookup.add(relevantQueueIndices.get(i));
+		}
+		if(lookup.size()!=30){
+			return false;
+		}
+		for(int i = 0; i<30; i++){
+			if(!lookup.contains(i))
+				return false;
+		}
+		return true;
+		
+		
+	}
+	
+	public static void main(String[]args){
+		System.out.println(test());
+	}
+
+}

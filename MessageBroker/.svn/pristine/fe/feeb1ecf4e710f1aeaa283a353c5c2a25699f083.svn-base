@@ -1,0 +1,189 @@
+package edu.ethz.asl.user04.dbutils;
+
+import java.sql.Connection;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.Statement;
+import java.util.ArrayList;
+
+import org.postgresql.jdbc3.Jdbc3PoolingDataSource;
+
+public class DBManager implements DBConnector {
+
+	protected String user;
+	protected String dbip;
+	protected String dbPort;
+	protected String dbName;
+	protected String usrPass;
+
+	
+	Jdbc3PoolingDataSource source;
+	public int numMaxOpen;
+	//ArrayList<Connection> openConnections;//TODO there is a memory leak here. Or rather this never gets cleared
+	public DBManager(String user, String dbip, String dbPort,
+			String dbName, String usrPass) {
+		this.user = user;
+		this.dbip = dbip;
+		this.dbPort = dbPort;
+		this.dbName = dbName;
+		this.usrPass = usrPass;
+		this.numMaxOpen=100;
+		initDB();
+	}
+	public DBManager(String user, String dbip, String dbPort,
+			String dbName, String usrPass,int maxConenctions) {
+		this.user = user;
+		this.dbip = dbip;
+		this.dbPort = dbPort;
+		this.dbName = dbName;
+		this.usrPass = usrPass;
+		this.numMaxOpen =maxConenctions;
+		
+		initDB();
+	}
+	
+	public DBManager(String user, String dbip, String dbName, String usrPass) {
+		
+		this.user = user;
+		this.dbip = dbip;
+		this.dbPort = "5432";
+		this.dbName = dbName;
+		this.usrPass = usrPass;
+		
+		initDB();
+		
+		
+	}
+
+	public 	Jdbc3PoolingDataSource getActualJDBC(){
+		return source;
+	}
+	public void initDBpool(){
+		 
+	}
+	public void initDB(){
+		source = new Jdbc3PoolingDataSource();
+		source.setDataSourceName("com.datapool.is.cool2"); // Everypool must have a uniqueName
+		source.setServerName(dbip);
+		source.setDatabaseName(dbName);
+		source.setUser(user);
+		source.setPassword(usrPass);
+		source.setMaxConnections(numMaxOpen);
+	
+		/*
+		try {
+			source.initialize();//TODO IDK WHAT HTIS DOESSSS but It sounds good
+		} catch (SQLException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		*/
+		//openConnections=new ArrayList<Connection>(numMaxOpen);
+		
+		
+	}
+
+	@Override
+	public Connection newClientConnection() {
+		Connection con = null;
+		try {
+		    con = source.getConnection();
+		 //   if(con!=null)
+		  //  	openConnections.add(con);
+		    // use connection
+		    return con;
+		} catch (SQLException e) {
+			System.out.println(e.getMessage());
+			return null;
+		}
+	}
+	
+	/*
+	public String describeConnectionPool(){
+		StringBuilder strb = new StringBuilder();
+		strb.append( " \n <ConectionPoolDescription> MaxConnections:"+numMaxOpen	+" totalConnections: "+openConnections.size());
+		int numStillOn=0;
+		for( Connection curCon : openConnections){
+			 try {
+				if(!curCon.isClosed())
+					 numStillOn++;
+			} catch (SQLException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+		}
+		strb.append(" numStillOpen: " + numStillOn+" </ConectionPoolDescription> \n\t</JDBC print> MaxConnections:");
+		strb.append( source.getMaxConnections()+" Descr: " +source.getDescription());
+		strb.append(" socketTimeOut"+ source.getSocketTimeout());
+
+		strb.append("</JDBC print>");
+		return strb.toString();
+	}
+	*/
+	
+	public String getUser() {
+		return user;
+	}
+
+	public void setUser(String user) {
+		this.user = user;
+	}
+
+	public String getDbip() {
+		return dbip;
+	}
+
+	public void setDbip(String dbip) {
+		this.dbip = dbip;
+	}
+
+	public String getDbPort() {
+		return dbPort;
+	}
+
+	public void setDbPort(String dbPort) {
+		this.dbPort = dbPort;
+	}
+
+	public String getDbName() {
+		return dbName;
+	}
+
+	public void setDbName(String dbName) {
+		this.dbName = dbName;
+	}
+
+	public String getUsrPass() {
+		return usrPass;
+	}
+
+	public void setUsrPass(String usrPass) {
+		this.usrPass = usrPass;
+	}
+
+	public int getNumMaxOpen() {
+		return numMaxOpen;
+	}
+
+	public void setNumMaxOpen(int numMaxOpen) {
+		this.numMaxOpen = numMaxOpen;
+	}
+/*
+	public void closeALLConnections(){
+		for( Connection con : openConnections){
+			try {
+				con.close();
+			} catch (SQLException e) {
+				System.err.println(e.getMessage());
+				e.printStackTrace();
+			}
+		}
+	}
+	*/
+	public void closeDB(){
+		source.close();
+		
+	}
+
+
+}

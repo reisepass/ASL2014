@@ -1,0 +1,123 @@
+package edu.ethz.asl.user04.dbutils;
+
+import java.sql.Connection;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.Statement;
+import java.util.ArrayList;
+
+import org.postgresql.jdbc3.Jdbc3PoolingDataSource;
+
+public class DBManager implements DBConnector {
+
+	protected String user;
+	protected String dbip;
+	protected String dbPort;
+	protected String dbName;
+	protected String usrPass;
+
+	
+	Jdbc3PoolingDataSource source;
+	int numMaxOpen=100;
+	ArrayList<Connection> openConnections;
+	public DBManager(String user, String dbip, String dbPort,
+			String dbName, String usrPass) {
+		this.user = user;
+		this.dbip = dbip;
+		this.dbPort = dbPort;
+		this.dbName = dbName;
+		this.usrPass = usrPass;
+		
+		initDB();
+	}
+	
+	public DBManager(String user, String dbip, String dbName, String usrPass) {
+		
+		this.user = user;
+		this.dbip = dbip;
+		this.dbPort = "5432";
+		this.dbName = dbName;
+		this.usrPass = usrPass;
+		
+		initDB();
+		
+		
+	}
+
+
+	
+	public void initDB(){
+		source = new Jdbc3PoolingDataSource();
+		source.setDataSourceName("com.datapool.is.cool"); // Everypool must have a uniqueName
+		source.setServerName(dbip);
+		source.setDatabaseName(dbName);
+		source.setUser(user);
+		source.setPassword(usrPass);
+		source.setMaxConnections(numMaxOpen);
+		openConnections=new ArrayList<Connection>(numMaxOpen);
+	}
+
+	@Override
+	public Connection newClientConnection() {
+		Connection con = null;
+		try {
+		    con = source.getConnection();
+		    if(con!=null)
+		    	openConnections.add(con);
+		    // use connection
+		    return con;
+		} catch (SQLException e) {
+			System.out.println(e.getMessage());
+			return null;
+		}
+	}
+	public String getUser() {
+		return user;
+	}
+
+	public void setUser(String user) {
+		this.user = user;
+	}
+
+	public String getDbip() {
+		return dbip;
+	}
+
+	public void setDbip(String dbip) {
+		this.dbip = dbip;
+	}
+
+	public String getDbPort() {
+		return dbPort;
+	}
+
+	public void setDbPort(String dbPort) {
+		this.dbPort = dbPort;
+	}
+
+	public String getDbName() {
+		return dbName;
+	}
+
+	public void setDbName(String dbName) {
+		this.dbName = dbName;
+	}
+
+	public String getUsrPass() {
+		return usrPass;
+	}
+
+	public void setUsrPass(String usrPass) {
+		this.usrPass = usrPass;
+	}
+
+	public int getNumMaxOpen() {
+		return numMaxOpen;
+	}
+
+	public void setNumMaxOpen(int numMaxOpen) {
+		this.numMaxOpen = numMaxOpen;
+	}
+
+
+}
