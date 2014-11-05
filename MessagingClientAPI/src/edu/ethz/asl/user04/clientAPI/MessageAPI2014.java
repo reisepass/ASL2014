@@ -699,8 +699,8 @@ public boolean createClient(CreateClientRequest createClientRequest) {
 						resp.success ? "[s]" : "[f]",							
 						outTimes.mwTimeInDBQ,
 						outTimes.clTimeInQ,
-						"Empty",
-						1
+						"qID",
+						deleteQueueRequest.queueid
 						)
 						+String.format(", %d, %d, %d, %d, %d, %d, %d, %d, %d",
 								outTimes.clWaitsinMWQ-outTimes.clStarts, //Connection init time 

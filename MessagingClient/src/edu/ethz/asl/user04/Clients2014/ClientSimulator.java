@@ -8,19 +8,28 @@ import java.util.ArrayList;
 import java.util.EmptyStackException;
 import java.util.Properties;
 import java.util.Random;
+import java.util.Timer;
+import java.util.TimerTask;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
 import edu.ethz.asl.user04.clientAPI.MessageAPI2014;
 import edu.ethz.asl.user04.shared.entity.ConfigExperimentV2014;
 import edu.ethz.user04.shared.requests.queuerequests.CreateQueueRequest;
+import edu.ethz.user04.shared.requests.queuerequests.DeleteQueueRequest;
 
 public class ClientSimulator {
 	private ExecutorService pool;
-
+	Properties exp_prop;
+	
 	// Constructor Should take some config file about which clients we want
 	public ClientSimulator(Properties exp_prop) {
-
+		
+		this.exp_prop = exp_prop;
+		
+	}
+	public void doStuff(){
+		
 		int num_senders = Integer.parseInt(exp_prop
 				.getProperty("num_send_only"));
 		int num_privateSenders = Integer.parseInt(exp_prop
@@ -38,8 +47,8 @@ public class ClientSimulator {
 
 		boolean debugOn = Boolean.parseBoolean(exp_prop
 				.getProperty("debug_on"));
-		
-		
+
+
 		int num_queues = Integer.parseInt(exp_prop.getProperty("num_queues"));
 		int message_length = Integer.parseInt(exp_prop
 				.getProperty("message_length"));
@@ -65,7 +74,19 @@ public class ClientSimulator {
 				exp_prop.getProperty("description"),
 				Integer.parseInt(exp_prop.getProperty("num_clients_permachine")));
 
+		long waitBeforeDeleteQueue= Long.parseLong(exp_prop.getProperty("experiment_duration"))-5000;
+		try{
+		waitBeforeDeleteQueue = Long.parseLong(exp_prop
+				.getProperty("whenDeleteQueue"));
+		}
+		catch(Exception e){
+			System.err.println(" Could not find waitBeforeDeleteQueue attribute");
+		}
 		// ConfigExperimentV2014 expCfg = new ConfigExperimentV2014();
+
+		
+		
+		
 
 		if(debugOn)
 			System.out.println("## Client.properties read in complete");
@@ -238,15 +259,37 @@ public class ClientSimulator {
 			}
 
 		}
+		
+		for( int i =1; i < num_queues ; i++){
+			MessageAPI2014 capi;
+			try {
+				capi = new MessageAPI2014(100, middlewareIP,
+						middlewarePort, expCfg);
+				list.add(new StdDeletQueue(100, capi,expCfg,i,waitBeforeDeleteQueue));
+			} catch (UnknownHostException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			} catch (IOException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+		}
+		
 		if(debugOn)
 			System.out.println("## Executor starting");
-		pool = Executors.newFixedThreadPool(totalThreadsNeeded + 3);
+		pool = Executors.newFixedThreadPool(totalThreadsNeeded + num_queues + 3);
 		for (StdClient cli : list) {
 			pool.execute(cli);
 		}
+		
 		if(debugOn)
 			System.out.println("Done Executing Pool");
+		
+		
+		
+		
 	}
+		
 
 	static final String AB = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ";
 	static Random rnd = new Random();
@@ -264,6 +307,7 @@ public class ClientSimulator {
 			exp_prop.load(new FileInputStream("properties/client.properties"));
 
 			ClientSimulator cliSim = new ClientSimulator(exp_prop);
+			cliSim.doStuff();
 
 		} catch (FileNotFoundException e) {
 			// TODO Auto-generated catch block

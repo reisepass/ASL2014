@@ -10,6 +10,8 @@ import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
+import javax.swing.DebugGraphics;
+
 import edu.ethz.asl.user04.messagebroker.MessageHandler;
 import edu.ethz.asl.user04.shared.entity.Message;
 import edu.ethz.asl.user04.shared.logging.MessagingSystemLogger;
@@ -306,15 +308,48 @@ public class SQLUtil_v2014 {
 			String sql = "DELETE FROM messages WHERE queueid="+qID+";";
 		    int err = sendSQL(sql);
 		    System.out.println("err1: "+err);
-		    if(err==-1)
+		    if(err==-1){
+				LOGGER.log(
+						Level.INFO,	String.format(
+								"[DEBUG] type=warning request_type=deleteQueue request_id=%s tier=middleware tag=failedrequest_in_respondsql myNote='%s' ",
+								lastMSG.getRequestUUID(),"DELETE FROM messages WHERE queueid= returned false"));
 		    	return false;
+		    }
 		    else{
 		    	String sqlQ = "DELETE FROM queues WHERE queueid="+qID+";";
 			err = sendSQL(sqlQ);
 			System.out.println("err2: "+err);
+			if(err==-1){
+				LOGGER.log(
+						Level.INFO,	String.format(
+								"[DEBUG] type=warning request_type=deleteQueue request_id=%s tier=middleware tag=failedrequest_in_respondsql myNote='%s' ",
+								lastMSG.getRequestUUID(),"DELETE FROM queues WHERE queueid= returned false"));
+			}
 			return (err==-1)? false : true;
 		    }
 		}
+		LOGGER.log(
+				Level.INFO,	String.format(
+						"[DEBUG] type=warning request_type=deleteQueue request_id=%s tier=middleware tag=failedrequest_in_respondsql myNote='%s' ",
+						lastMSG.getRequestUUID(),"queueIdTaken(qID) returned false"));
+		return false; 
+	}
+	public boolean deleteQueueCascade(int qID) throws SQLException{
+		if(queueIdTaken(qID)){
+	    	String sqlQ = "DELETE FROM queues WHERE queueid="+qID+";";
+			LOGGER.log(
+					Level.INFO,	String.format(
+							"[DEBUG] type=warning request_type=deleteQueue tier=middleware tag=failedrequest_in_respondsql myNote='%s' ",
+							sqlQ));
+			int err = sendSQL(sqlQ);
+			LOGGER.log(
+					Level.INFO,	String.format(
+							"[DEBUG] type=warning request_type=deleteQueue tier=middleware tag=failedrequest_in_respondsql myNote='%s' resp=%d ",
+							sqlQ,err));
+			System.out.println("err2: "+err);
+			return (err==-1)? false : true;
+		}
+		
 		return false; 
 	}
 	public ArrayList<ArrayList<String>> listQueues() throws SQLException{

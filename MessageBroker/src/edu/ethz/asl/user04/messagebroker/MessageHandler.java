@@ -47,7 +47,7 @@ public class MessageHandler implements Runnable {
 	DBManager dbC;
 	Object messageObject;
 	ObjectInputStream oi;
-	boolean debugOn = true;
+	boolean debugOn = false;
 	int sleepBeforeConnectionRetry = 1000;
 	int resultChunkSize = 50;
 	ObjectOutputStream oo;
@@ -124,11 +124,13 @@ public class MessageHandler implements Runnable {
 				}
 				
 				timeStamps.qSizeDB=startingDBQ;
+				if(debugOn)
 				LOGGER.log(
 						Level.INFO,
 						"[DEBUG] aboutToGetDBCon "
 								+ msr.getRequestUUID());
 				Connection conn = dbC.newClientConnection();
+				if(debugOn)
 				LOGGER.log(
 						Level.INFO,
 						"[DEBUG] GotDBCon "
@@ -256,13 +258,12 @@ public class MessageHandler implements Runnable {
 				else if (messageObject instanceof DeleteQueueRequest) {
 					DeleteQueueRequest deleteQueueRequest = (DeleteQueueRequest) messageObject;
 					boolean resp;
-					
-			
-					
 					try {
 						timeStamps.mwStartsSendingToDB=System.currentTimeMillis();
 						resp = sqlutil.deleteQueue(deleteQueueRequest.queueid);
+						//resp = sqlutil.deleteQueueCascade(deleteQueueRequest.queueid);
 						timeStamps.mwRespFromDB=System.currentTimeMillis();
+						LOGGER.log(Level.INFO, "request_type=deleteQueue tried on "+deleteQueueRequest.queueid+" and got <"+resp+"> " + deleteQueueRequest.getRequestUUID());
 					} catch (SQLException e) {// TODO inform the client
 						LOGGER.log(Level.SEVERE, "Encountered SQLException for request " + deleteQueueRequest.getRequestUUID(), e);
 						resp = false;
