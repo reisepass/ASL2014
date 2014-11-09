@@ -68,11 +68,6 @@ public class MessageBrokerService {
 					.getProperty("mw_server_port",
 							(new Integer(SERVER_PORT)).toString())), pool,
 					dbPool,dbQueueCount,mwQueueCount );
-			/**
-			 * TODO
-			 * Currently instantiate with a single Listener which accepts connections.
-			 * Try extending to invoke multiple listeners using same ThreadPool.
-			 */
 	        pool.submit(listener);
 		} catch (IOException e) {
 			e.printStackTrace();

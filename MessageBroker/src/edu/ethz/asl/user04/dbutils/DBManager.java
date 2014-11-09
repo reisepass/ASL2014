@@ -42,11 +42,7 @@ public class DBManager implements DBConnector {
 		initDB();
 	}
 	
-	/*
-	 * AMR: populateDB class needs to create more than one pool 
-	 * so each shud have a unique name
-	 * so if random is true it gives the pool a unique name
-	 */
+	
 	
 	
 	public DBManager(String user, String dbip, String dbPort,
@@ -102,11 +98,6 @@ public class DBManager implements DBConnector {
 		
 	}
 	
-	/*
-	 * AMR: populateDB class needs to create more than one pool 
-	 * so each shud have a unique name
-	 * so if random is true it gives the pool a unique name
-	 */
 	
 	public void initDB( boolean random){
 		source = new Jdbc3PoolingDataSource();
@@ -121,16 +112,7 @@ public class DBManager implements DBConnector {
 		source.setPassword(usrPass);
 		source.setMaxConnections(numMaxOpen);
 	
-		/*
-		try {
-			source.initialize();//TODO IDK WHAT HTIS DOESSSS but It sounds good
-		} catch (SQLException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
-		*/
-		//openConnections=new ArrayList<Connection>(numMaxOpen);
-		
+
 		
 	}
 	
@@ -140,9 +122,7 @@ public class DBManager implements DBConnector {
 		Connection con = null;
 		try {
 		    con = source.getConnection();
-		 //   if(con!=null)
-		  //  	openConnections.add(con);
-		    // use connection
+
 		    return con;
 		} catch (SQLException e) {
 			System.out.println(e.getMessage());
@@ -150,28 +130,7 @@ public class DBManager implements DBConnector {
 		}
 	}
 	
-	/*
-	public String describeConnectionPool(){
-		StringBuilder strb = new StringBuilder();
-		strb.append( " \n <ConectionPoolDescription> MaxConnections:"+numMaxOpen	+" totalConnections: "+openConnections.size());
-		int numStillOn=0;
-		for( Connection curCon : openConnections){
-			 try {
-				if(!curCon.isClosed())
-					 numStillOn++;
-			} catch (SQLException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
-			}
-		}
-		strb.append(" numStillOpen: " + numStillOn+" </ConectionPoolDescription> \n\t</JDBC print> MaxConnections:");
-		strb.append( source.getMaxConnections()+" Descr: " +source.getDescription());
-		strb.append(" socketTimeOut"+ source.getSocketTimeout());
-
-		strb.append("</JDBC print>");
-		return strb.toString();
-	}
-	*/
+	
 	
 	public String getUser() {
 		return user;
@@ -220,18 +179,7 @@ public class DBManager implements DBConnector {
 	public void setNumMaxOpen(int numMaxOpen) {
 		this.numMaxOpen = numMaxOpen;
 	}
-/*
-	public void closeALLConnections(){
-		for( Connection con : openConnections){
-			try {
-				con.close();
-			} catch (SQLException e) {
-				System.err.println(e.getMessage());
-				e.printStackTrace();
-			}
-		}
-	}
-	*/
+
 	public void closeDB(){
 		source.close();
 		

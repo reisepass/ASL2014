@@ -42,11 +42,6 @@ public class DBManager implements DBConnector {
 		initDB();
 	}
 	
-	/*
-	 * AMR: populateDB class needs to create more than one pool 
-	 * so each shud have a unique name
-	 * so if random is true it gives the pool a unique name
-	 */
 	
 	
 	public DBManager(String user, String dbip, String dbPort,

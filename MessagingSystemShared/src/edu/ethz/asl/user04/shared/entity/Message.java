@@ -62,7 +62,7 @@ public class Message implements Serializable {
 	
 	
 	/**
-	 * FIXME SenderID should be implicitly set. Remove this. Temporarily, added another constructor
+	 * 
 	 * 
 	 * Basic constructor. ReceiverID defaults to 0 (Broadcast message), context is 0, priority is lowest
 	 * @param senderId ID of the Publishing client

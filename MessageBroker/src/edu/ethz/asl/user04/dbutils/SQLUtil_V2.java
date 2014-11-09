@@ -425,7 +425,7 @@ public class SQLUtil_V2 {
 	
 	
 	
-	public Message getQueuePriorityFirst(int QueueID,boolean removeAfter){  //TODO allow specification of sorting by time or priority
+	public Message getQueuePriorityFirst(int QueueID,boolean removeAfter){  
 		ArrayList<Message> outMessages = new ArrayList<Message>();
 		String getMessagesOfThisQueue = "SELECT * FROM messages WHERE queueid="+QueueID+"" +
 				"receiverid=-1 ORDER BY priority ASC LIMIT 2;";
@@ -449,7 +449,7 @@ public class SQLUtil_V2 {
 		return out; 
 	}
 	
-	public Message getQueueClosestTime(int QueueID,boolean removeAfter){  //TODO allow specification of sorting by time or priority
+	public Message getQueueClosestTime(int QueueID,boolean removeAfter){  
 		ArrayList<Message> outMessages = new ArrayList<Message>();
 		String getMessagesOfThisQueue = "SELECT * FROM messages WHERE queueid="+QueueID+"" +
 				"receiverid=-1 ORDER BY timeofarrival DESC LIMIT 2;";
@@ -475,49 +475,7 @@ public class SQLUtil_V2 {
 	
 	
 
-	
-	/*public Message getPrivateMessage(int QueueID,boolean removeAfter,boolean orderByTime, int clientID, int context){  //TODO allow specification of sorting by time or priority
-		ArrayList<Message> outMessages = new ArrayList<Message>();
-		String getMessagesOfThisQueue = "SELECT * FROM messages WHERE "
-				+ " receiverid=" + clientID
-				+ " senderid=" + senderID
-				+ " AND queueid=" + QueueID
-				+ (context == 0? "" : " AND context=" + context)
-				+ " ORDER BY priority LIMIT 1;";
-		Message out =null;
-		
-		System.out.println("Executing query: " + getMessagesOfThisQueue);
-		
-		try {
-			ArrayList<ArrayList<String>> respo = respondSQL(getMessagesOfThisQueue,messagesTableCols);
-			
-			int a =0;
-			if(respo.size()==0){
-				 return null;
-			}
-			out= constructMessage(respo.get(0));
-			if(removeAfter){
-				String sqlRemove= "DELETE FROM messages WHERE messageid="+out.getMessageId()+";";
-				sendSQL(sqlRemove);
-			}
-		} catch (SQLException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
-		
-		
-		return out; 
-	}*/
-	
-	
-	/*
-	 * AMR: needed to get a message with a particular reciever (and not a broadcast)
-	 * needed for the requestResposne functionality as the sender may send a broadcasr 
-	 * request (receiver =-1) and then keeps checking for responses for that request
-	 * so the sender will fetch the same request as it had receiverID -1
-	 * while the response for a request response message can never be -1
-	 * 
-	 */
+
 	public Message getPrivateMessageNotBroadcast(int senderID, int receiverID, int queueID, boolean removeAfter, boolean orderByTime, int context) {
 		String getMessagesOfThisQueue;
 		
@@ -645,7 +603,7 @@ public class SQLUtil_V2 {
 	 * @param context
 	 * @return
 	 */
-	public Message getPrivateMessageFromSender(int QueueID,boolean removeAfter,boolean orderByTime, int clientID, int context, int auther){  //TODO allow specification of sorting by time or priority
+	public Message getPrivateMessageFromSender(int QueueID,boolean removeAfter,boolean orderByTime, int clientID, int context, int auther){  
 		ArrayList<Message> outMessages = new ArrayList<Message>();
 		String getMessagesOfThisQueue = "SELECT * FROM messages WHERE "
 				+ " senderid = " + auther
@@ -685,7 +643,6 @@ public class SQLUtil_V2 {
 	 * @return
 	 * @throws SQLException
 	 */
-	//TODO 
 	public ArrayList<Message> getAllPrivateMessages(int QueueID,boolean removeAfter,boolean orderByTime, int receiverID,int whichChunk) throws SQLException{
 		ArrayList<Message> outMessages = new ArrayList<Message>();
 	
@@ -715,11 +672,6 @@ public class SQLUtil_V2 {
 				Message tmpM = constructMessage(messageRet);
 				System.out.println(tmpM);
 				if(removeAfter){
-					// FIXME Instead of sending a delete statement for each
-					// messageid, group it in a 'WHERE messageid in (..)' clause
-					// (Oh, reminder to self - check concurrency issues! Keep
-					// track of #messages retrieved and deleted. A kitten dies
-					// for each |#retrieved - #deleted| > 0) 
 					String sqlRemove = "DELETE FROM messages WHERE messageid="
 							+ tmpM.getMessageId();
 					sendSQL(sqlRemove);

@@ -260,20 +260,7 @@ public class ClientSimulator {
 
 		}
 		
-		for( int i =1; i < num_queues ; i++){
-			MessageAPI2014 capi;
-			try {
-				capi = new MessageAPI2014(100, middlewareIP,
-						middlewarePort, expCfg);
-				list.add(new StdDeletQueue(100, capi,expCfg,i,waitBeforeDeleteQueue));
-			} catch (UnknownHostException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
-			} catch (IOException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
-			}
-		}
+		
 		
 		if(debugOn)
 			System.out.println("## Executor starting");

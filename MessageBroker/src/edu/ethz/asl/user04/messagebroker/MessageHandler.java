@@ -338,10 +338,6 @@ public class MessageHandler implements Runnable {
 				//
 				// Read Private Message Request
 				//
-				// AMR: id ReadPrivateMessageRequest has getBraodCast = false
-				// call the method getPrivateMessageNotBroadcast in the SQLUtil class
-				// which basically ignores the broadcast messages
-				// as responses are always directed to the senders and not broadcasts
 				else if (messageObject instanceof ReadPrivateMessageRequest) {
 					if (debugOn)
 						System.out.print("<ReadPrivateMessageRequest>");
@@ -451,8 +447,6 @@ public class MessageHandler implements Runnable {
 								));
 	
 			System.err.println("ERR186" + e.getMessage());
-			// TODO before exiting send an Error back to the client so he knows
-			// to stop listening before it closes
 			LOGGER.log(Level.WARNING, "[BUG] Something went wrong in MessageHandler", e);
 
 			try {
@@ -498,7 +492,6 @@ public class MessageHandler implements Runnable {
 			
 			try {
 				oo.close();
-				//socket.close();
 				if(!socket.isClosed()){
 					LOGGER.log(
 							Level.WARNING,

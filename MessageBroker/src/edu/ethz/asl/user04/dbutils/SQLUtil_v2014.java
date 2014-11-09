@@ -89,12 +89,7 @@ public class SQLUtil_v2014 {
 		return conn;
 	}
 	
-	/*
-	 * er is false when a statement is executed
-	 * returns 1 if statement was sent and executed
-	 * else return -1;
-	 * MODIFIED THE ER VARIABLE
-	 */
+
 	public int sendSQL(String inpCommand) {
 		int errorCode = 1;
 		Statement statmt=null;
@@ -267,11 +262,6 @@ public class SQLUtil_v2014 {
  		 return (ret.size()>0) ? true : false; 
 		
 	}
-	//returns queueID
-	/*
-	 * return -1 if q is taken and thus queue was not created
-	 * 
-	 */
 	public boolean CreateQueue(int pruposedID, int clientID, String queueName) throws SQLException{
 		if(!queueIdTaken(pruposedID)){
 			String sql= "INSERT INTO queues (queueid, queuename, createdby) VALUES("+pruposedID+",'"+ queueName+"',"+clientID+")"+";";
@@ -375,11 +365,6 @@ public class SQLUtil_v2014 {
 		colName.add("queueid");
 		ArrayList<ArrayList<String>> result = respondSQL(sql, colName);
 		ArrayList<Integer> back = new ArrayList<Integer>();
-		/*if(result.size()>0){
-			for( String res : result.get(0) ) {
-				back.add(Integer.parseInt(res));
-			}
-		}*/
 		if(result!=null){
 			for(int i =0; i<result.size(); i++){
 				back.add(Integer.parseInt(result.get(i).get(0)));
@@ -423,7 +408,7 @@ public class SQLUtil_v2014 {
 				return errCode; 
 			}
 		} catch (SQLException e) {
-			// TODO Auto-generated catch block
+			
 			
 			e.printStackTrace();
 			return -2;
@@ -464,7 +449,7 @@ public class SQLUtil_v2014 {
 	
 	
 	
-	public Message getQueuePriorityFirst(int QueueID,boolean removeAfter){  //TODO allow specification of sorting by time or priority
+	public Message getQueuePriorityFirst(int QueueID,boolean removeAfter){  
 		ArrayList<Message> outMessages = new ArrayList<Message>();
 		String getMessagesOfThisQueue = "SELECT * FROM messages WHERE queueid="+QueueID+"" +
 				"receiverid=-1 ORDER BY timeofarrival ASC LIMIT 2;";
@@ -488,7 +473,7 @@ public class SQLUtil_v2014 {
 		return out; 
 	}
 	
-	public Message getQueueClosestTime(int QueueID,boolean removeAfter){  //TODO allow specification of sorting by time or priority
+	public Message getQueueClosestTime(int QueueID,boolean removeAfter){  
 		ArrayList<Message> outMessages = new ArrayList<Message>();
 		String getMessagesOfThisQueue = "SELECT * FROM messages WHERE queueid="+QueueID+"" +
 				"receiverid=-1 ORDER BY timeofarrival DESC LIMIT 2;";
@@ -517,14 +502,7 @@ public class SQLUtil_v2014 {
 	
 
 	
-	/*
-	 * AMR: needed to get a message with a particular reciever (and not a broadcast)
-	 * needed for the requestResposne functionality as the sender may send a broadcasr 
-	 * request (receiver =-1) and then keeps checking for responses for that request
-	 * so the sender will fetch the same request as it had receiverID -1
-	 * while the response for a request response message can never be -1
-	 * 
-	 */
+
 	public Message getPrivateMessageNotBroadcast(int senderID, int receiverID, int queueID, boolean removeAfter, boolean orderByTime, int context) {
 		String getMessagesOfThisQueue;
 		
@@ -579,15 +557,8 @@ public class SQLUtil_v2014 {
 	}
 	
 	
+
 	
-	/*
-	 * Amr: changed this method so that it gets braodcast messages (by including -1 parameter in the receiverID)
-	 * added the parameter sender id, if it is -1 then donot take it into consideration
-	 * else include it
-	 */
-	
-	// one modofication for the request response case, donot consider a particular queue
-	// i have to search for a message for this receiver, senderId not important, 
 	public Message getPrivateMessage(int senderID, int receiverID, int queueID, boolean removeAfter, boolean orderByTime, int context) {
 		String getMessagesOfThisQueue;
 		
@@ -652,7 +623,7 @@ public class SQLUtil_v2014 {
 	 * @param context
 	 * @return
 	 */
-	public Message getPrivateMessageFromSender(int QueueID,boolean removeAfter,boolean orderByTime, int clientID, int context, int auther){  //TODO allow specification of sorting by time or priority
+	public Message getPrivateMessageFromSender(int QueueID,boolean removeAfter,boolean orderByTime, int clientID, int context, int auther){  
 		ArrayList<Message> outMessages = new ArrayList<Message>();
 		String getMessagesOfThisQueue = "SELECT * FROM messages WHERE "
 				+ " senderid = " + auther
@@ -692,7 +663,6 @@ public class SQLUtil_v2014 {
 	 * @return
 	 * @throws SQLException
 	 */
-	//TODO 
 	public ArrayList<Message> getAllPrivateMessages(int QueueID,boolean removeAfter,boolean orderByTime, int receiverID,int whichChunk) throws SQLException{
 		ArrayList<Message> outMessages = new ArrayList<Message>();
 	
@@ -722,11 +692,6 @@ public class SQLUtil_v2014 {
 				Message tmpM = constructMessage(messageRet);
 				System.out.println(tmpM);
 				if(removeAfter){
-					// FIXME Instead of sending a delete statement for each
-					// messageid, group it in a 'WHERE messageid in (..)' clause
-					// (Oh, reminder to self - check concurrency issues! Keep
-					// track of #messages retrieved and deleted. A kitten dies
-					// for each |#retrieved - #deleted| > 0) 
 					String sqlRemove = "DELETE FROM messages WHERE messageid="
 							+ tmpM.getMessageId();
 					sendSQL(sqlRemove);
