@@ -30,7 +30,7 @@ import edu.ethz.user04.shared.requests.messagerequests.MessagingSystemRequest;
 public class SQLUtil_v2014 {
 	
 	public final static Logger LOGGER = MessagingSystemLogger
-			.getLoggerForClass(SQLUtil_v2014.class.getName());
+			.getLoggerForClass("DBaloneLogg");
 	
 	protected Connection conn;
 	ArrayList<String> messagesTableCols;
@@ -403,8 +403,13 @@ public class SQLUtil_v2014 {
 					int errCode =-1;
 				  
 					  errCode= sendSQL(makeClient);
-				
+						
+						LOGGER.info("Executing query: " + makeClient);
+						
 				return errCode; 
+			}
+			else{
+				LOGGER.warning("QueueNotFound for Executing query: " + makeClient);
 			}
 		} catch (SQLException e) {
 			

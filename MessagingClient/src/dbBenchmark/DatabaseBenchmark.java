@@ -16,6 +16,7 @@ import edu.ethz.asl.user04.Clients2014.StdSendClient;
 import edu.ethz.asl.user04.clientAPI.MessageAPI2014;
 import edu.ethz.asl.user04.dbutils.DBManager;
 import edu.ethz.asl.user04.shared.entity.ConfigExperimentV2014;
+import edu.ethz.user04.shared.requests.queuerequests.CreateQueueRequest;
 
 public class DatabaseBenchmark {
 
@@ -108,6 +109,35 @@ public class DatabaseBenchmark {
 
 		ArrayList<Integer> cliReqPrivMessage = new ArrayList<Integer>();
 		ArrayList<Integer> authorList = new ArrayList<Integer>();
+		
+		
+		try {
+			MessageAPI2014 setupMAPI = new MessageAPI2014(100, middlewareIP,
+					middlewarePort, expCfg);
+			if(debugOn)
+				System.out.println(String.format("## Created this MAPI   %s:%d",middlewareIP,middlewarePort));
+			
+			if(debugOn)
+				System.out.println("## MessageAPI instant complete");
+			
+			for (int i = 1; i <= num_queues; i++) {
+				CreateQueueRequest cqr = new CreateQueueRequest(i, 100,
+						"StdQueue" + i);
+				if(debugOn)
+					System.out.println("## Q created");
+				setupMAPI.createQueue(cqr);
+				if(debugOn)
+					System.out.println("## Q sent");
+			}
+		} catch (UnknownHostException e1) {
+			// TODO Auto-generated catch block
+			e1.printStackTrace();
+		} catch (IOException e1) {
+			// TODO Auto-generated catch block
+			e1.printStackTrace();
+		}
+		
+		
 		
 		for (int i = 0; i < num_senders; i++) {
 			int nextCliID = idCounter++;

@@ -84,15 +84,12 @@ public class dbSender implements Runnable {
 			outTimes.clSentReqToMW= System.currentTimeMillis();
 			outTimes.mwStartsSendingToDB=System.currentTimeMillis();
 			int resultSingle = sqlutil
-					.addMessage(message.getPayload(), message
-							.getSenderId(),
-							message.getReceiverId(), message
-									.getContext(), message
-									.getPriority(), message
-									.getQueueIdList().get(0));
+					.addMessage(msg, clientId,-1, 0, message
+									.getPriority(), queueID);
 			outTimes.mwRespFromDB=System.currentTimeMillis();
 			outTimes.clRespFromMW = System.currentTimeMillis();
-			boolean resp = resultSingle != -1;
+			LOGGER.log(Level.INFO,"dbSender::  resultSingle = "+resultSingle);
+			boolean resp = resultSingle == 1;
 			
 			
 			sqlutil.closeSQLconnection();
@@ -106,7 +103,7 @@ public class dbSender implements Runnable {
 			}
 			outTimes.clClosedConn = System.currentTimeMillis();
 			
-			
+			outTimes.comput();
 			LOGGER.log(
 					Level.INFO,
 					String.format(
@@ -125,7 +122,7 @@ public class dbSender implements Runnable {
 							"sendDBalone",
 							outTimes.clThinkTime,
 							outTimes.clRoundTime,
-							outTimes.mwThinkTime,
+							queueID,
 							outTimes.mwRoundTime,
 							outTimes.dbRoundTime,
 							outTimes.dbThinkTime,
@@ -133,7 +130,7 @@ public class dbSender implements Runnable {
 							outTimes.mwTimeInDBQ,
 							outTimes.clTimeInQ,
 							msg.substring(0, 4),
-							1
+							resultSingle
 							
 							)
 							+String.format(", %d, %d, %d, %d, %d, %d, %d, %d, %d",

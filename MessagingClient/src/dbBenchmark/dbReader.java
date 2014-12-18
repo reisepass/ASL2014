@@ -95,7 +95,7 @@ public class dbReader implements Runnable {
 			}
 			
 			outTimes.clClosedConn = System.currentTimeMillis();
-			
+			outTimes.comput();
 			LOGGER.log(
 					Level.INFO,
 					String.format(
@@ -114,7 +114,7 @@ public class dbReader implements Runnable {
 							"popDBalone",
 							outTimes.clThinkTime,
 							outTimes.clRoundTime,
-							outTimes.mwThinkTime,
+							queueID,
 							outTimes.mwRoundTime,
 							outTimes.dbRoundTime,
 							outTimes.dbThinkTime,
