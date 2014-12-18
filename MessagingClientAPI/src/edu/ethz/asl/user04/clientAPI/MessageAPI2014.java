@@ -21,6 +21,7 @@ import edu.ethz.asl.user04.shared.entity.RequestResponse;
 import edu.ethz.asl.user04.shared.entity.StatTrack;
 import edu.ethz.asl.user04.shared.logging.MessagingSystemLogger;
 import edu.ethz.user04.shared.requests.messagerequests.DeleteMessageRequest;
+import edu.ethz.user04.shared.requests.messagerequests.DoNothingJustReturn;
 import edu.ethz.user04.shared.requests.messagerequests.MessagingSystemRequest;
 import edu.ethz.user04.shared.requests.messagerequests.WriteMessageRequest;
 import edu.ethz.user04.shared.requests.queuerequests.CloseConnection;
@@ -290,6 +291,123 @@ public class MessageAPI2014 implements ClientAPIInterface {
 		return resp.success;
 	}
 
+	
+	
+	public StatTrack sendJustReturn(DoNothingJustReturn writeMessageRequest) {
+		
+		StatTrack clTimes = new StatTrack();
+		clTimes.clStarts = System.currentTimeMillis();
+				
+		
+		Socket tempSocket = null;
+		ObjectOutputStream outputStream = null;
+		ObjectInputStream inputStream = null;
+
+		
+		
+		
+		RequestResponse resp = new RequestResponse(false, null);
+		writeMessageRequest.message.setSenderId(this.clientId);
+		
+		try {
+		
+			
+			tempSocket = new Socket(brokerServiceURL, port);
+			
+			
+			
+			inputStream = new ObjectInputStream(tempSocket.getInputStream());
+			outputStream = new ObjectOutputStream(tempSocket.getOutputStream());
+			
+			clTimes.clWaitsinMWQ = System.currentTimeMillis();
+			//Wait for ready Thread
+			inputStream.readObject();  // //This is a simple flag sent from the Middle ware as its first action once a runnalbe thread has picked this clients socket from the Queue. This is primarily here for benchmarking the time this client spends in the Queue
+			clTimes.clOutofMWQ = System.currentTimeMillis();
+			// The additional time recorded for transferring this boolean object can be corrected for by checking measuring all the times when the system appeared to have more clients in the Queue than is possible. And then simply subtracting out this time because it is the over lap
+			
+			// Write Request object
+			clTimes.clGotOutStream = System.currentTimeMillis();
+			outputStream.writeObject(writeMessageRequest);
+			clTimes.clSentReqToMW= System.currentTimeMillis();
+			
+			// Read Response object			
+			resp = (RequestResponse) inputStream.readObject();
+			clTimes.clRespFromMW = System.currentTimeMillis();
+
+			
+		} catch (Exception e) {
+			LOGGER.log(Level.WARNING, "SendMessage failed for RequestID "
+					+ writeMessageRequest.getRequestUUID(), e);
+		}
+		
+		try {
+			
+			outputStream.close();
+			inputStream.close();
+			tempSocket.close();
+			clTimes.clClosedConn = System.currentTimeMillis();
+		} catch (IOException e) {
+			LOGGER.log(Level.WARNING, "Unable to close socket"
+					+ writeMessageRequest.getRequestUUID(), e);
+		}
+		clTimes.clClosedConn = System.currentTimeMillis();
+
+		
+		
+		StatTrack outTimes = clTimes.merge(resp.timing);
+		outTimes.comput();
+		LOGGER.log(
+				Level.INFO,
+				String.format(
+						"[CSVFRMT]  %s, %d, %d, %d, %d, %d, %d, %d, %d, %s ,%d ,%s, %d, %d, %d, %d, %d, %d, %s, %d, %d, %s, %d ",
+						cfg.description,
+						cfg.experimentStartTime,
+						cfg.experimentLength,
+						cfg.numberOfMessageHandlerThreads,
+						cfg.numberOfMiddleWareMachines,
+						cfg.numberOfDBConnections,
+						cfg.numberOfClientMachines,
+						cfg.numQueues,
+						cfg.num_clients,
+						writeMessageRequest.getRequestUUID(),
+						this.clientId,
+						"sendDoNothing",
+						outTimes.clThinkTime,
+						outTimes.clRoundTime,
+						outTimes.mwThinkTime,
+						outTimes.mwRoundTime,
+						outTimes.dbRoundTime,
+						outTimes.dbThinkTime,
+						resp.success ? "[s]" : "[f]",				
+						outTimes.mwTimeInDBQ,
+						outTimes.clTimeInQ,
+						"Empty",
+						1
+						
+						)
+						+String.format(", %d, %d, %d, %d, %d, %d, %d, %d, %d",
+								outTimes.clWaitsinMWQ-outTimes.clStarts, //Connection init time 
+								outTimes.clClosedConn-outTimes.clRespFromMW, // Close connection time
+								outTimes.mwGetsStreams-outTimes.mwStarts, //Open stream time on mw
+								outTimes.mwSentReadyToClient-outTimes.mwGetsStreams, //Time to send ready Message
+								outTimes.mwWaitsinDBQ-outTimes.mwSentReadyToClient, //Time to receive Request from client 
+								outTimes.mwWaitsinDBQ-cfg.experimentStartTime,  //used for q size calc
+								outTimes.mwOutofDBQ-cfg.experimentStartTime, //used for q size calc
+								outTimes.clWaitsinMWQ-cfg.experimentStartTime,   //used for q size calc
+								outTimes.clOutofMWQ-cfg.experimentStartTime  //used for q size calc
+						)
+						+String.format(", %d, %d, %d, %d, %d, %d",
+								outTimes.qSizeDB,
+								outTimes.qSizeMW,
+								outTimes.mwNoQRound,
+								outTimes.mwNetworkTime,
+								outTimes.mwID,
+								outTimes.mwReadyNetTime
+						)
+				);
+
+		return outTimes;
+	}
 	// context is the context in the message and not the context in this class
 	@Override
 	public Message sendRequestResponseMessage(

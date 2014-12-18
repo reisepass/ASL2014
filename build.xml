@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<project default="create_run_jar" name="Create Runnable Jar for Project MessageBroker with Jar-in-Jar Loader">
+    <!--this file was created by Eclipse Runnable JAR Export Wizard-->
+    <!--ANT 1.7 is required                                        -->
+    <target name="create_mw_run_jar">
+        <jar destfile="mid_14.jar">
+            <manifest>
+                <attribute name="Main-Class" value="org.eclipse.jdt.internal.jarinjarloader.JarRsrcLoader"/>
+                <attribute name="Rsrc-Main-Class" value="edu.ethz.asl.user04.messagebroker.JustStartServer"/>
+                <attribute name="Class-Path" value="."/>
+                <attribute name="Rsrc-Class-Path" value="./ postgresql-9.1-903.jdbc3.jar"/>
+            </manifest>
+            <zipfileset src="jar-in-jar-loader.zip"/>
+            <fileset dir="MessageBroker/bin"/>
+            <fileset dir="MessagingSystemShared/bin"/>
+            <zipfileset dir="externalLib/" includes="postgresql-9.1-903.jdbc3.jar"/>
+        </jar>
+    </target>
+    <target name="create_cli_run_jar">
+        <jar destfile="cli_14.jar">
+            <manifest>
+                <attribute name="Main-Class" value="org.eclipse.jdt.internal.jarinjarloader.JarRsrcLoader"/>
+                <attribute name="Rsrc-Main-Class" value="edu.ethz.asl.user04.Clients2014.ClientSimulator"/>
+                <attribute name="Class-Path" value="."/>
+                <attribute name="Rsrc-Class-Path" value="./ postgresql-9.1-903.jdbc3.jar"/>
+            </manifest>
+            <zipfileset src="jar-in-jar-loader.zip"/>
+            <fileset dir="MessagingClient/bin"/>
+            <fileset dir="MessagingClientAPI/bin"/>
+            <fileset dir="MessagingSystemShared/bin"/>
+            <fileset dir="MessageBroker/bin"/>
+            <zipfileset dir="externalLib/" includes="postgresql-9.1-903.jdbc3.jar"/>
+        </jar>
+    </target>
+</project>
+

@@ -45,6 +45,23 @@ public class ClientSimulator {
 		int num_peekclients = Integer.parseInt(exp_prop
 				.getProperty("num_peekclients"));
 
+		int num_doNothing = 0;
+		try{
+		num_doNothing = Integer.parseInt(exp_prop
+				.getProperty("num_donothing"));
+		}
+		catch(Exception e){
+			System.err.println(" Could not find num_doNothing attribute");
+		}
+		long bufferLength=700;
+		try{
+		bufferLength = Integer.parseInt(exp_prop
+				.getProperty("send_bufferlength"));
+		}
+		catch(Exception e){
+			System.err.println(" Could not find send_bufferLength attribute");
+		}
+		
 		boolean debugOn = Boolean.parseBoolean(exp_prop
 				.getProperty("debug_on"));
 
@@ -59,7 +76,7 @@ public class ClientSimulator {
 		int middlewarePort = Integer.parseInt(exp_prop.getProperty("mw_port"));
 		int totalThreadsNeeded = num_senders + num_peekclients
 				+ num_privateSenders + num_pullClients + num_pullClients
-				+ num_pullPrivate + num_findAuthor + num_relQueue;
+				+ num_pullPrivate + num_findAuthor + num_relQueue + num_doNothing;
 
 		ConfigExperimentV2014 expCfg = new ConfigExperimentV2014(
 				Integer.parseInt(exp_prop
@@ -216,6 +233,27 @@ public class ClientSimulator {
 			}
 
 		}
+		
+		
+		for (int i = 0; i < num_doNothing; i++) {
+			int nextCliID = idCounter++;
+			MessageAPI2014 capi;
+			try {
+				capi = new MessageAPI2014(nextCliID, middlewareIP,
+						middlewarePort, expCfg);
+				authorList.add(nextCliID);
+				
+				list.add(new StdNoDBBufferedWait(nextCliID,capi,expCfg,bufferLength) );
+			} catch (UnknownHostException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			} catch (IOException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+
+		}
+		
 
 		for (int i = 0; i < num_findAuthor; i++) {
 			if (authorList.size() < 1) {

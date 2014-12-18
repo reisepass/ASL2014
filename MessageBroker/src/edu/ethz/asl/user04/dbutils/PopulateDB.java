@@ -8,7 +8,6 @@ import java.sql.Connection;
 import java.sql.SQLException;
 import java.util.Properties;
 /**
- * @Author: Amr
  * this class populates the DB with some values
  *
  */
@@ -21,14 +20,7 @@ public class PopulateDB {
 	
 	public static SQLUtil initializeConnection(){
 		DBManager  dbPool;
-		//dbPool= new DBManager("ec2-user", "ec2-54-201-11-166.us-west-2.compute.amazonaws.com", "5432",
-		//		"ASL_1", "ec2-user", 25, true);
-		
-		//dbPool= new DBManager("macbook", "localhost", "5432",
-				//"macbook", "ec2-user", 25, true);
-		// client.propertiesFile
-		// db_url
-		// db_name
+
 		
 		String userName = client_prop.getProperty("db_username");
 		String url = client_prop.getProperty("db_url");
@@ -36,10 +28,7 @@ public class PopulateDB {
 		String dbName = client_prop.getProperty("db_name");
 		String password = client_prop.getProperty("db_password");
 		int maxConnections = Integer.parseInt(client_prop.getProperty("db_connection_limit"));
-		
-		//String user, String dbip, String dbPort,
-		//String dbName, String usrPass,int maxConenctions, boolean randomName) 
-		
+
 		 dbPool = new DBManager(userName, url, port, dbName, password,maxConnections,true);
 		
 		Connection conn = dbPool.newClientConnection();

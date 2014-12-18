@@ -352,7 +352,6 @@ public class SQLUtil_v2014 {
 		return result; 
 	}
 	/**
-	 * @author: Amr
 	 * @param receiverId
 	 * @return
 	 * @throws SQLException

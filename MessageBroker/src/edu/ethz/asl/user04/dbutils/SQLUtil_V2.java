@@ -323,7 +323,6 @@ public class SQLUtil_V2 {
 		return result; 
 	}
 	/**
-	 * @author: Amr
 	 * @param receiverId
 	 * @return
 	 * @throws SQLException
@@ -531,11 +530,7 @@ public class SQLUtil_V2 {
 	
 	
 	
-	/*
-	 * Amr: changed this method so that it gets braodcast messages (by including -1 parameter in the receiverID)
-	 * added the parameter sender id, if it is -1 then donot take it into consideration
-	 * else include it
-	 */
+
 	
 	// one modofication for the request response case, donot consider a particular queue
 	// i have to search for a message for this receiver, senderId not important, 

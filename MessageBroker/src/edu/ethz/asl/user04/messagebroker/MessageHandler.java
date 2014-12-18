@@ -21,6 +21,7 @@ import edu.ethz.asl.user04.shared.entity.RequestResponse;
 import edu.ethz.asl.user04.shared.entity.StatTrack;
 import edu.ethz.asl.user04.shared.logging.MessagingSystemLogger;
 import edu.ethz.user04.shared.requests.messagerequests.DeleteMessageRequest;
+import edu.ethz.user04.shared.requests.messagerequests.DoNothingJustReturn;
 import edu.ethz.user04.shared.requests.messagerequests.MessagingSystemRequest;
 import edu.ethz.user04.shared.requests.messagerequests.WriteMessageRequest;
 import edu.ethz.user04.shared.requests.queuerequests.CloseConnection;
@@ -322,6 +323,22 @@ public class MessageHandler implements Runnable {
 					
 					oo.writeObject( new RequestResponse(sendBack!=null && sendBack instanceof Message, (Object) sendBack, timeStamps));
 					timeStamps.mwSentRespToCli= System.currentTimeMillis();
+				}
+				else if (messageObject instanceof DoNothingJustReturn){
+
+					
+					LOGGER.log(
+							Level.INFO,
+							"[DEBUG] WriteMessageRequest "
+									+ msr.getRequestUUID());
+
+					DoNothingJustReturn messageRequest = (DoNothingJustReturn) messageObject;
+					boolean success = true;
+					timeStamps.mwStartsSendingToDB=System.currentTimeMillis();
+					timeStamps.mwRespFromDB=System.currentTimeMillis();
+					success = true;
+					oo.writeObject(new RequestResponse(success, msr.getRequestUUID(),timeStamps ));
+					timeStamps.mwSentRespToCli=System.currentTimeMillis();
 				}
 				//
 				// Close Connection
