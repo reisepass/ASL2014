@@ -54,7 +54,7 @@ public class MessageHandler implements Runnable {
 	ObjectOutputStream oo;
 	private UUID lastReqIDServer;
 	private Exception lastExceptionHandled;
-
+	private long gotNewSocket;
 	private AtomicInteger dbQueueCount;
 	private AtomicInteger mwQueueCount;
 	private int startingMWQ;
@@ -74,13 +74,14 @@ public class MessageHandler implements Runnable {
 		this.startingMWQ=startingMWQ;
 	}
 
-	public MessageHandler(Socket socket, DBManager dbPool,AtomicInteger dbQueueCount, AtomicInteger mwQueueCount, int startingMWQ , boolean debugOn) {
+	public MessageHandler(Socket socket, DBManager dbPool,AtomicInteger dbQueueCount, AtomicInteger mwQueueCount, int startingMWQ,long gotNewSocket , boolean debugOn) {
 		this.socket = socket;
 		this.dbC = dbPool;
 		this.debugOn = debugOn;
 		this.dbQueueCount=dbQueueCount;
 		this.mwQueueCount=mwQueueCount;
 		this.startingMWQ=startingMWQ;
+		this.gotNewSocket=gotNewSocket;
 
 	}
 
@@ -88,6 +89,7 @@ public class MessageHandler implements Runnable {
 	public void run() {
 		
 		StatTrack timeStamps = new StatTrack();
+		timeStamps.mwGotNewSocket=gotNewSocket;
 		timeStamps.mwStarts=System.currentTimeMillis();
 		timeStamps.mwID=MessagingSystemLogger.middlewareID;
 		if(mwQueueCount!=null)

@@ -45,7 +45,8 @@ public class ListenerService implements Runnable {
                 int mwQStart=-1;
                 if(mwQueueCount!=null)
                 	mwQStart=mwQueueCount.getAndIncrement();
-                MessageHandler handler = new MessageHandler(client,connectionPool,dbQueueCount,mwQueueCount,mwQStart,true);
+                long gotNewSocket = System.currentTimeMillis();
+                MessageHandler handler = new MessageHandler(client,connectionPool,dbQueueCount,mwQueueCount,mwQStart,gotNewSocket,true);
             //    System.out.println(connectionPool.describeConnectionPool());
                 
                 pool.execute(handler);

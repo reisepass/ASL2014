@@ -262,18 +262,18 @@ public class MessageAPI2014 implements ClientAPIInterface {
 						outTimes.dbThinkTime,
 						resp.success ? "[s]" : "[f]",				
 						outTimes.mwTimeInDBQ,
-						outTimes.clTimeInQ,
+						outTimes.mwSocketToRunDif,
 						"Empty",
 						1
 						
 						)
 						+String.format(", %d, %d, %d, %d, %d, %d, %d, %d, %d",
-								outTimes.clWaitsinMWQ-outTimes.clStarts, //Connection init time 
-								outTimes.clClosedConn-outTimes.clRespFromMW, // Close connection time
-								outTimes.mwGetsStreams-outTimes.mwStarts, //Open stream time on mw
+								outTimes.clWaitsinMWQ-outTimes.clStarts,             //Connection init time 
+								outTimes.clClosedConn-outTimes.clRespFromMW,         // Close connection time
+								outTimes.clSentReqToMW-outTimes.clGotOutStream,      //Open stream time on mw
 								outTimes.mwSentReadyToClient-outTimes.mwGetsStreams, //Time to send ready Message
-								outTimes.mwWaitsinDBQ-outTimes.mwSentReadyToClient, //Time to receive Request from client 
-								outTimes.mwWaitsinDBQ-cfg.experimentStartTime,  //used for q size calc
+								outTimes.mwWaitsinDBQ-outTimes.mwSentReadyToClient,  //Time to receive Request from client 
+								outTimes.mwWaitsinDBQ-cfg.experimentStartTime,       //used for q size calc
 								outTimes.mwOutofDBQ-cfg.experimentStartTime, //used for q size calc
 								outTimes.clWaitsinMWQ-cfg.experimentStartTime,   //used for q size calc
 								outTimes.clOutofMWQ-cfg.experimentStartTime  //used for q size calc
@@ -380,7 +380,7 @@ public class MessageAPI2014 implements ClientAPIInterface {
 						outTimes.dbThinkTime,
 						resp.success ? "[s]" : "[f]",				
 						outTimes.mwTimeInDBQ,
-						outTimes.clTimeInQ,
+						outTimes.mwSocketToRunDif,
 						"Empty",
 						1
 						
@@ -388,7 +388,7 @@ public class MessageAPI2014 implements ClientAPIInterface {
 						+String.format(", %d, %d, %d, %d, %d, %d, %d, %d, %d",
 								outTimes.clWaitsinMWQ-outTimes.clStarts, //Connection init time 
 								outTimes.clClosedConn-outTimes.clRespFromMW, // Close connection time
-								outTimes.mwGetsStreams-outTimes.mwStarts, //Open stream time on mw
+								outTimes.clSentReqToMW-outTimes.clGotOutStream, //Open stream time on mw
 								outTimes.mwSentReadyToClient-outTimes.mwGetsStreams, //Time to send ready Message
 								outTimes.mwWaitsinDBQ-outTimes.mwSentReadyToClient, //Time to receive Request from client 
 								outTimes.mwWaitsinDBQ-cfg.experimentStartTime,  //used for q size calc
@@ -512,7 +512,7 @@ public boolean createClient(CreateClientRequest createClientRequest) {
 						outTimes.dbThinkTime,
 						resp.success ? "[s]" : "[f]",				
 						outTimes.mwTimeInDBQ,
-						outTimes.clTimeInQ,
+						outTimes.mwSocketToRunDif,
 						"Empty",
 						1
 						
@@ -520,7 +520,7 @@ public boolean createClient(CreateClientRequest createClientRequest) {
 						+String.format(", %d, %d, %d, %d, %d, %d, %d, %d, %d",
 								outTimes.clWaitsinMWQ-outTimes.clStarts, //Connection init time 
 								outTimes.clClosedConn-outTimes.clRespFromMW, // Close connection time
-								outTimes.mwGetsStreams-outTimes.mwStarts, //Open stream time on mw
+								outTimes.clSentReqToMW-outTimes.clGotOutStream, //Open stream time on mw
 								outTimes.mwSentReadyToClient-outTimes.mwGetsStreams, //Time to send ready Message
 								outTimes.mwWaitsinDBQ-outTimes.mwSentReadyToClient, //Time to receive Request from client 
 								outTimes.mwWaitsinDBQ-cfg.experimentStartTime,  //used for q size calc
@@ -616,14 +616,14 @@ public boolean createClient(CreateClientRequest createClientRequest) {
 						outTimes.dbThinkTime,
 						resp.success ? "[s]" : "[f]",							
 						outTimes.mwTimeInDBQ,
-						outTimes.clTimeInQ,
+						outTimes.mwSocketToRunDif,
 						"FoundOne",
 						1       //This still needs to be be implemetned inside SQLUtil  because ATM we dont know the dif between an SQL failure and empty queues
 						)
 						+String.format(", %d, %d, %d, %d, %d, %d, %d, %d, %d",
 								outTimes.clWaitsinMWQ-outTimes.clStarts, //Connection init time 
 								outTimes.clClosedConn-outTimes.clRespFromMW, // Close connection time
-								outTimes.mwGetsStreams-outTimes.mwStarts, //Open stream time on mw
+								outTimes.clSentReqToMW-outTimes.clGotOutStream, //Open stream time on mw
 								outTimes.mwSentReadyToClient-outTimes.mwGetsStreams, //Time to send ready Message
 								outTimes.mwReceived-outTimes.mwSentReadyToClient, //Time to receive Request from client 
 								outTimes.mwWaitsinDBQ-cfg.experimentStartTime,  //used for q size calc
@@ -717,14 +717,14 @@ public boolean createClient(CreateClientRequest createClientRequest) {
 						outTimes.dbThinkTime,
 						response.success ? "[s]" : "[f]",							
 						outTimes.mwTimeInDBQ,
-						outTimes.clTimeInQ,
+						outTimes.mwSocketToRunDif,
 						"Empty",
 						1
 						)
 						+String.format(", %d, %d, %d, %d, %d, %d, %d, %d, %d",
 								outTimes.clWaitsinMWQ-outTimes.clStarts, //Connection init time 
 								outTimes.clClosedConn-outTimes.clRespFromMW, // Close connection time
-								outTimes.mwGetsStreams-outTimes.mwStarts, //Open stream time on mw
+								outTimes.clSentReqToMW-outTimes.clGotOutStream, //Open stream time on mw
 								outTimes.mwSentReadyToClient-outTimes.mwGetsStreams, //Time to send ready Message
 								outTimes.mwWaitsinDBQ-outTimes.mwSentReadyToClient, //Time to receive Request from client 
 								outTimes.mwWaitsinDBQ-cfg.experimentStartTime,  //used for q size calc
@@ -816,14 +816,14 @@ public boolean createClient(CreateClientRequest createClientRequest) {
 						outTimes.dbThinkTime,
 						resp.success ? "[s]" : "[f]",							
 						outTimes.mwTimeInDBQ,
-						outTimes.clTimeInQ,
+						outTimes.mwSocketToRunDif,
 						"qID",
 						deleteQueueRequest.queueid
 						)
 						+String.format(", %d, %d, %d, %d, %d, %d, %d, %d, %d",
 								outTimes.clWaitsinMWQ-outTimes.clStarts, //Connection init time 
 								outTimes.clClosedConn-outTimes.clRespFromMW, // Close connection time
-								outTimes.mwGetsStreams-outTimes.mwStarts, //Open stream time on mw
+								outTimes.clSentReqToMW-outTimes.clGotOutStream, //Open stream time on mw
 								outTimes.mwSentReadyToClient-outTimes.mwGetsStreams, //Time to send ready Message
 								outTimes.mwWaitsinDBQ-outTimes.mwSentReadyToClient, //Time to receive Request from client 
 								outTimes.mwWaitsinDBQ-cfg.experimentStartTime,  //used for q size calc
@@ -928,14 +928,14 @@ public boolean createClient(CreateClientRequest createClientRequest) {
 						outTimes.dbThinkTime,
 						response.success ? "[s]" : "[f]",							
 						outTimes.mwTimeInDBQ,
-						outTimes.clTimeInQ,
+						outTimes.mwSocketToRunDif,
 						"numReturned",
 						queuesWithRelevantMessages.size()
 						)
 						+String.format(", %d, %d, %d, %d, %d, %d, %d, %d, %d",
 								outTimes.clWaitsinMWQ-outTimes.clStarts, //Connection init time 
 								outTimes.clClosedConn-outTimes.clRespFromMW, // Close connection time
-								outTimes.mwGetsStreams-outTimes.mwStarts, //Open stream time on mw
+								outTimes.clSentReqToMW-outTimes.clGotOutStream, //Open stream time on mw
 								outTimes.mwSentReadyToClient-outTimes.mwGetsStreams, //Time to send ready Message
 								outTimes.mwWaitsinDBQ-outTimes.mwSentReadyToClient, //Time to receive Request from client 
 								outTimes.mwWaitsinDBQ-cfg.experimentStartTime,  //used for q size calc
@@ -1040,14 +1040,14 @@ public boolean createClient(CreateClientRequest createClientRequest) {
 						outTimes.dbThinkTime,
 						resp.success ? "[s]" : "[f]",							
 						outTimes.mwTimeInDBQ,
-						outTimes.clTimeInQ,
+						outTimes.mwSocketToRunDif,
 						"found",
 						resp.success ? 1 : 0
 						)
 						+String.format(", %d, %d, %d, %d, %d, %d, %d, %d, %d",
 								outTimes.clWaitsinMWQ-outTimes.clStarts, //Connection init time 
 								outTimes.clClosedConn-outTimes.clRespFromMW, // Close connection time
-								outTimes.mwGetsStreams-outTimes.mwStarts, //Open stream time on mw
+								outTimes.clSentReqToMW-outTimes.clGotOutStream, //Open stream time on mw
 								outTimes.mwSentReadyToClient-outTimes.mwGetsStreams, //Time to send ready Message
 								outTimes.mwWaitsinDBQ-outTimes.mwSentReadyToClient, //Time to receive Request from client 
 								outTimes.mwWaitsinDBQ-cfg.experimentStartTime,  //used for q size calc

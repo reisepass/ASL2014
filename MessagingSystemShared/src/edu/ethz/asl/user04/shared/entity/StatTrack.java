@@ -26,6 +26,7 @@ public class StatTrack implements Serializable{
 	public long clRespFromMW;
 	public long clClosedConn;
 	public long mwFinished;
+	public long mwGotNewSocket;
 	public int dbRoundTime; //mwRespFromDB - mwWaitsinDBQ  
 	public int dbThinkTime;
 	public int mwThinkTime; //Calculated on the client 
@@ -41,6 +42,7 @@ public class StatTrack implements Serializable{
 	public int mwID;
 	public int mwThinkTime2;
 	public int mwReadyNetTime;
+	public int mwSocketToRunDif;
 	
 	
 	public StatTrack(){
@@ -58,6 +60,7 @@ public class StatTrack implements Serializable{
 		 mwStartsSendingToDB = -1;
 		 mwRespFromDB = -1;
 		 mwSentRespToCli = -1;
+		 mwGotNewSocket=-1;
 		 clRespFromMW = -1;
 		 clClosedConn = -1;
 		 mwFinished = -1;
@@ -73,6 +76,7 @@ public class StatTrack implements Serializable{
 		 mwID=-1;
 		 mwThinkTime2=-1;
 		 mwReadyNetTime=-1;
+		 mwSocketToRunDif=-1;
 	}
 	public StatTrack merge(StatTrack other){
 		StatTrack cl = new StatTrack();;
@@ -115,6 +119,8 @@ public class StatTrack implements Serializable{
 		 out.mwThinkTime2=mw.mwThinkTime2;
 		 out.clTimeInQ = cl.clTimeInQ;
 		 out.mwReadyNetTime=mw.mwReadyNetTime;
+		 out.mwGotNewSocket=mw.mwGotNewSocket;
+		 out.mwSocketToRunDif=mw.mwSocketToRunDif;
 		 return out;
 	}
 	public void comput(){
@@ -128,7 +134,7 @@ public class StatTrack implements Serializable{
 		mwThinkTime = (int)(mwRespFromDB - mwReceived) -dbRoundTime ; //Thinktime is everything other than waiting in queues or waiting for responses of other nodes \
 		mwNetworkTime = mwNoQRound - dbRoundTime- mwThinkTime;
 		mwTimeInDBQ     = (int) (mwOutofDBQ - mwWaitsinDBQ);
-		
+		mwSocketToRunDif = (int)(mwStarts - mwGotNewSocket);
 		clRoundTime = (int) (clClosedConn - clStarts ); //Response time includes waiting in the queue
 		clThinkTime = (int) clRoundTime - mwRoundTime;
 	}
